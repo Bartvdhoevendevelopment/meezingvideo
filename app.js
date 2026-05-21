@@ -1,5 +1,6 @@
 // ============================================================
-// Meezingvideo — homepage logic (fullscreen views)
+// Meezingvideo — homepage logic
+// Feature: inline timing-editor per lyric-regel
 // ============================================================
 
 if (!window.MEEZINGVIDEO_CONFIG) {
@@ -21,42 +22,62 @@ console.log('[Meezingvideo] client klaar voor', supabaseUrl);
   } catch (e) { console.error('[Meezingvideo] onverwachte fout:', e); }
 })();
 
-const homeView      = document.getElementById('homeView');
-const playerView    = document.getElementById('playerView');
-const backBtn       = document.getElementById('backBtn');
-const npBar         = document.getElementById('npBar');
-const searchInput   = document.getElementById('searchInput');
-const searchResults = document.getElementById('searchResults');
-const songTitleEl   = document.getElementById('songTitle');
-const songArtistEl  = document.getElementById('songArtist');
-const lyricsListEl  = document.getElementById('lyricsList');
-const autoScrollBtn = document.getElementById('autoScrollBtn');
-const layoutStackBtn = document.getElementById('layoutStackBtn');
-const layoutSideBtn  = document.getElementById('layoutSideBtn');
+const homeView        = document.getElementById('homeView');
+const playerView      = document.getElementById('playerView');
+const backBtn         = document.getElementById('backBtn');
+const npBar           = document.getElementById('npBar');
+const searchInput     = document.getElementById('searchInput');
+const searchResults   = document.getElementById('searchResults');
+const songTitleEl     = document.getElementById('songTitle');
+const songArtistEl    = document.getElementById('songArtist');
+const lyricsListEl    = document.getElementById('lyricsList');
+const autoScrollBtn   = document.getElementById('autoScrollBtn');
+const layoutStackBtn  = document.getElementById('layoutStackBtn');
+const layoutSideBtn   = document.getElementById('layoutSideBtn');
 const playerSectionEl = document.getElementById('playerSection');
-const toast         = document.getElementById('toast');
+const toastEl         = document.getElementById('toast');
 
-let currentSong = null;
+let currentSong   = null;
 let currentLyrics = [];
-let ytPlayer = null;
-let pollTimer = null;
-let activeIdx = -1;
-let autoScroll = true;
-let userInteractedRecently = false;
-let userInteractTimeout = null;
+let ytPlayer      = null;
+let pollTimer     = null;
+let activeIdx     = -1;
+let autoScroll    = true;
+let userInteractedRecently  = false;
+let userInteractTimeout     = null;
 
+// ── Timing editor state ──────────────────────────────────────
+let timingPopup     = null;   // huidig open popup-element
+let timingPopupIdx  = null;   // index van de regel waarvoor popup open is
+let isSavingTiming  = false;
+
+// ── Auth state: is er een ingelogde beheerder? ───────────────
+let isAdmin = false;
+sb.auth.getSession().then(({ data: { session } }) => {
+  isAdmin = !!session;
+  // herrender als er al lyrics zijn
+  if (currentLyrics.length) renderLyrics();
+});
+sb.auth.onAuthStateChange((_, session) => {
+  isAdmin = !!session;
+  if (currentLyrics.length) renderLyrics();
+});
+
+// ============================================================
+// Toast
+// ============================================================
 function showToast(msg, type) {
   type = type || '';
-  toast.textContent = msg;
-  toast.className = 'toast show ' + type;
+  toastEl.textContent = msg;
+  toastEl.className = 'toast show ' + type;
   clearTimeout(showToast._t);
-  showToast._t = setTimeout(function () { toast.classList.remove('show'); }, 2400);
+  showToast._t = setTimeout(() => toastEl.classList.remove('show'), 2400);
 }
 
 function escapeHtml(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-    return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
-  });
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])
+  );
 }
 
 // ============================================================
@@ -67,16 +88,14 @@ function showHome() {
   playerView.classList.remove('active');
   backBtn.style.display = 'none';
   if (npBar) npBar.style.display = 'none';
-  // pauzeer video als die speelt
   if (ytPlayer && ytPlayer.pauseVideo) {
     try { ytPlayer.pauseVideo(); } catch (_) {}
   }
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-  // Zoekvak leegmaken en dropdown sluiten — verschijnt pas weer als gebruiker erin klikt
+  closeTimingPopup();
   searchInput.value = '';
   searchResults.classList.remove('open');
   searchResults.innerHTML = '';
-  // expliciet GEEN focus — gebruiker moet zelf klikken
   if (document.activeElement === searchInput) searchInput.blur();
 }
 
@@ -89,23 +108,24 @@ function showPlayer() {
 
 backBtn.addEventListener('click', showHome);
 
-// ESC = terug
-document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape' && playerView.classList.contains('active')) showHome();
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (timingPopup) { closeTimingPopup(); return; }
+    if (playerView.classList.contains('active')) showHome();
+  }
 });
 
 // ============================================================
 // Search
 // ============================================================
 let searchDebounce = null;
-searchInput.addEventListener('input', function (e) {
+searchInput.addEventListener('input', e => {
   const q = e.target.value.trim();
   clearTimeout(searchDebounce);
   if (!q) { showAllSongs(); return; }
-  searchDebounce = setTimeout(function () { runSearch(q); }, 180);
+  searchDebounce = setTimeout(() => runSearch(q), 180);
 });
-
-searchInput.addEventListener('focus', function () {
+searchInput.addEventListener('focus', () => {
   const q = searchInput.value.trim();
   if (q) runSearch(q); else showAllSongs();
 });
@@ -120,7 +140,6 @@ async function showAllSongs() {
     if (error) throw error;
     renderResults(data || []);
   } catch (err) {
-    console.error(err);
     showToast('Database niet bereikbaar: ' + err.message, 'error');
   }
 }
@@ -136,7 +155,6 @@ async function runSearch(q) {
     if (error) throw error;
     renderResults(data || []);
   } catch (err) {
-    console.error(err);
     showToast('Zoeken lukte niet: ' + err.message, 'error');
   }
 }
@@ -159,14 +177,14 @@ function renderResults(items) {
         '<div class="artist">' + escapeHtml(it.artist || '') + '</div>' +
       '</div>' +
       '<span class="tag">Meezingen</span>';
-    row.addEventListener('click', function () { selectSong(it); });
+    row.addEventListener('click', () => selectSong(it));
     searchResults.appendChild(row);
   }
   searchResults.classList.add('open');
 }
 
 // ============================================================
-// Select song → load lyrics, show player view
+// Select song
 // ============================================================
 async function selectSong(song) {
   currentSong = song;
@@ -175,6 +193,7 @@ async function selectSong(song) {
   songArtistEl.textContent = song.artist || '';
   lyricsListEl.innerHTML = '<div class="lyrics-empty"><div class="spinner"></div></div>';
   activeIdx = -1;
+  closeTimingPopup();
   try {
     const { data, error } = await sb
       .from('meezingvideo_lyrics')
@@ -185,26 +204,235 @@ async function selectSong(song) {
     currentLyrics = data || [];
     renderLyrics();
   } catch (err) {
-    console.error(err);
     lyricsListEl.innerHTML = '<div class="lyrics-empty">Tekst laden mislukt.</div>';
   }
   loadOrCueVideo(song.youtube_id);
 }
 
+// ============================================================
+// Lyrics renderen  — met optioneel timing-edit icoontje
+// ============================================================
 function renderLyrics() {
   lyricsListEl.innerHTML = '';
   if (!currentLyrics.length) {
     lyricsListEl.innerHTML = '<div class="lyrics-empty">Nog geen tekst voor dit lied.</div>';
     return;
   }
-  currentLyrics.forEach(function (line, idx) {
+
+  currentLyrics.forEach((line, idx) => {
     const el = document.createElement('div');
     el.className = 'lyric-line';
-    el.textContent = line.text;
     el.dataset.idx = idx;
-    el.addEventListener('click', function () { seekTo(line.start_seconds); });
+
+    // tekst
+    const textSpan = document.createElement('span');
+    textSpan.className = 'lyric-text';
+    textSpan.textContent = line.text;
+    el.appendChild(textSpan);
+
+    // klik op tekst → spring naar dat moment
+    textSpan.addEventListener('click', () => seekTo(line.start_seconds));
+
+    // timing-edit knop (altijd zichtbaar, ook voor niet-admins zodat iedereen
+    // kan helpen de timing te corrigeren — verwijder de !isAdmin check als je
+    // het alleen voor admins wil)
+    const editBtn = document.createElement('button');
+    editBtn.className = 'lyric-timing-btn';
+    editBtn.title = 'Timing aanpassen';
+    editBtn.setAttribute('aria-label', 'Timing aanpassen voor: ' + line.text);
+    editBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+           stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 6v6l4 2"/>
+      </svg>
+      <span>${formatSeconds(line.start_seconds)}</span>
+    `;
+    editBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      openTimingPopup(idx, editBtn);
+    });
+    el.appendChild(editBtn);
+
     lyricsListEl.appendChild(el);
   });
+}
+
+function formatSeconds(sec) {
+  const s = parseFloat(sec) || 0;
+  const m = Math.floor(s / 60);
+  const ss = (s - m * 60).toFixed(1).padStart(4, '0');
+  return m > 0 ? `${m}:${ss}` : `${ss}s`;
+}
+
+// ============================================================
+// Timing popup
+// ============================================================
+function openTimingPopup(idx, anchorEl) {
+  // sluit bestaande popup
+  if (timingPopup) closeTimingPopup();
+
+  timingPopupIdx = idx;
+  const line = currentLyrics[idx];
+
+  const popup = document.createElement('div');
+  popup.className = 'timing-popup';
+  popup.setAttribute('role', 'dialog');
+  popup.setAttribute('aria-label', 'Timing aanpassen');
+
+  popup.innerHTML = `
+    <div class="timing-popup-header">
+      <span class="timing-popup-title">⏱ Timing aanpassen</span>
+      <button class="timing-popup-close" title="Sluiten">✕</button>
+    </div>
+    <div class="timing-popup-lyric">${escapeHtml(line.text)}</div>
+    <div class="timing-popup-time" id="timingDisplayVal">${formatSeconds(line.start_seconds)}</div>
+    <div class="timing-popup-btns">
+      <button class="tpb" data-d="-1">−1s</button>
+      <button class="tpb" data-d="-0.5">−½s</button>
+      <button class="tpb snap" id="timingSnapBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        Huidige tijd
+      </button>
+      <button class="tpb" data-d="0.5">+½s</button>
+      <button class="tpb" data-d="1">+1s</button>
+    </div>
+    <div class="timing-popup-footer">
+      <button class="tpb-save" id="timingSaveBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <path d="M17 21v-8H7v8M7 3v5h8"/>
+        </svg>
+        Opslaan
+      </button>
+      <span class="timing-popup-hint">ESC om te sluiten</span>
+    </div>
+  `;
+
+  // bewaar de huidige (mogelijk nog niet opgeslagen) tijdwaarde lokaal in popup
+  let localTime = parseFloat(line.start_seconds);
+
+  function updateDisplay() {
+    popup.querySelector('#timingDisplayVal').textContent = formatSeconds(localTime);
+    popup.querySelector('.lyric-timing-btn span') &&
+      (anchorEl.querySelector('span').textContent = formatSeconds(localTime));
+  }
+
+  // ± knoppen
+  popup.querySelectorAll('.tpb[data-d]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      localTime = Math.max(0, localTime + parseFloat(btn.dataset.d));
+      updateDisplay();
+    });
+  });
+
+  // snap naar huidige videotijd
+  popup.querySelector('#timingSnapBtn').addEventListener('click', () => {
+    if (ytPlayer?.getCurrentTime) {
+      localTime = parseFloat(ytPlayer.getCurrentTime().toFixed(2));
+      updateDisplay();
+    } else {
+      showToast('Video nog niet gestart', 'error');
+    }
+  });
+
+  // sluit
+  popup.querySelector('.timing-popup-close').addEventListener('click', closeTimingPopup);
+
+  // opslaan
+  popup.querySelector('#timingSaveBtn').addEventListener('click', async () => {
+    if (isSavingTiming) return;
+    await saveTiming(idx, localTime);
+    closeTimingPopup();
+  });
+
+  // klik buiten popup → sluit
+  setTimeout(() => {
+    document.addEventListener('click', outsideClick);
+  }, 50);
+
+  document.body.appendChild(popup);
+  timingPopup = popup;
+
+  // positioneer popup bij de knop
+  positionPopup(popup, anchorEl);
+}
+
+function positionPopup(popup, anchor) {
+  const r = anchor.getBoundingClientRect();
+  const pw = 280;
+  let left = r.left + window.scrollX;
+  let top  = r.bottom + window.scrollY + 6;
+
+  // zorg dat popup niet buiten scherm valt
+  if (left + pw > window.innerWidth - 10) left = window.innerWidth - pw - 10;
+  if (left < 10) left = 10;
+
+  // als popup onder scherm uitkomt, toon dan erboven
+  const ph = 200; // geschatte hoogte
+  if (top + ph > window.innerHeight + window.scrollY) {
+    top = r.top + window.scrollY - ph - 6;
+  }
+
+  popup.style.left = left + 'px';
+  popup.style.top  = top + 'px';
+}
+
+function outsideClick(e) {
+  if (timingPopup && !timingPopup.contains(e.target) &&
+      !e.target.closest('.lyric-timing-btn')) {
+    closeTimingPopup();
+  }
+}
+
+function closeTimingPopup() {
+  if (timingPopup) {
+    timingPopup.remove();
+    timingPopup = null;
+    timingPopupIdx = null;
+    document.removeEventListener('click', outsideClick);
+  }
+}
+
+// ============================================================
+// Timing opslaan in Supabase
+// ============================================================
+async function saveTiming(idx, newTime) {
+  const line = currentLyrics[idx];
+  if (!line?.id) { showToast('Geen ID gevonden voor deze regel', 'error'); return; }
+
+  isSavingTiming = true;
+  const saveBtn = timingPopup?.querySelector('#timingSaveBtn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Opslaan…'; }
+
+  try {
+    const { error } = await sb
+      .from('meezingvideo_lyrics')
+      .update({ start_seconds: newTime })
+      .eq('id', line.id);
+
+    if (error) throw error;
+
+    // update lokale state
+    currentLyrics[idx].start_seconds = newTime;
+
+    // update het icoontje in de lijst
+    const lineEl = lyricsListEl.querySelector('.lyric-line[data-idx="' + idx + '"]');
+    if (lineEl) {
+      const btn = lineEl.querySelector('.lyric-timing-btn span');
+      if (btn) btn.textContent = formatSeconds(newTime);
+    }
+
+    showToast('Timing opgeslagen ✓');
+  } catch (err) {
+    showToast('Opslaan mislukt: ' + err.message, 'error');
+  } finally {
+    isSavingTiming = false;
+  }
 }
 
 // ============================================================
@@ -214,11 +442,11 @@ let ytApiReady = false;
 let ytApiReadyResolvers = [];
 window.onYouTubeIframeAPIReady = function () {
   ytApiReady = true;
-  ytApiReadyResolvers.forEach(function (r) { r(); });
+  ytApiReadyResolvers.forEach(r => r());
   ytApiReadyResolvers = [];
 };
 function waitForYTApi() {
-  return new Promise(function (resolve) {
+  return new Promise(resolve => {
     if (ytApiReady) return resolve();
     ytApiReadyResolvers.push(resolve);
   });
@@ -233,11 +461,11 @@ async function loadOrCueVideo(videoId) {
   await waitForYTApi();
   if (!ytPlayer) {
     ytPlayer = new YT.Player('ytPlayer', {
-      videoId: videoId,
+      videoId,
       playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
       events: {
-        onReady: function () { startPolling(); },
-        onStateChange: function (e) {
+        onReady: () => startPolling(),
+        onStateChange: e => {
           if (e.data === YT.PlayerState.PLAYING) startPolling();
         }
       }
@@ -249,7 +477,7 @@ async function loadOrCueVideo(videoId) {
 }
 
 function seekTo(seconds) {
-  if (!ytPlayer || !ytPlayer.seekTo) return;
+  if (!ytPlayer?.seekTo) return;
   ytPlayer.seekTo(Number(seconds), true);
   ytPlayer.playVideo();
 }
@@ -260,7 +488,7 @@ function startPolling() {
 }
 
 function syncLyrics() {
-  if (!ytPlayer || !ytPlayer.getCurrentTime || !currentLyrics.length) return;
+  if (!ytPlayer?.getCurrentTime || !currentLyrics.length) return;
   let t;
   try { t = ytPlayer.getCurrentTime(); } catch (e) { return; }
   if (typeof t !== 'number') return;
@@ -274,7 +502,7 @@ function syncLyrics() {
 function setActiveLine(idx) {
   const prevActive = lyricsListEl.querySelector('.lyric-line.active');
   if (prevActive) prevActive.classList.remove('active');
-  Array.from(lyricsListEl.children).forEach(function (el, i) {
+  Array.from(lyricsListEl.children).forEach((el, i) => {
     if (i < idx) el.classList.add('passed'); else el.classList.remove('passed');
   });
   activeIdx = idx;
@@ -291,58 +519,55 @@ function setActiveLine(idx) {
   }
 }
 
-lyricsListEl.addEventListener('wheel', markInteract, { passive: true });
+lyricsListEl.addEventListener('wheel',      markInteract, { passive: true });
 lyricsListEl.addEventListener('touchstart', markInteract, { passive: true });
 function markInteract() {
   userInteractedRecently = true;
   clearTimeout(userInteractTimeout);
-  userInteractTimeout = setTimeout(function () { userInteractedRecently = false; }, 3500);
+  userInteractTimeout = setTimeout(() => { userInteractedRecently = false; }, 3500);
 }
 
-autoScrollBtn.addEventListener('click', function () {
+autoScrollBtn.addEventListener('click', () => {
   autoScroll = !autoScroll;
   autoScrollBtn.classList.toggle('on', autoScroll);
 });
 
 // ============================================================
-// Layout toggle (onder / naast video) — persistent via localStorage
+// Layout toggle
 // ============================================================
 function applyLayout(mode) {
   if (!playerSectionEl) return;
   if (mode === 'side') {
     playerSectionEl.classList.add('layout-side');
-    layoutSideBtn && layoutSideBtn.setAttribute('aria-pressed', 'true');
-    layoutStackBtn && layoutStackBtn.setAttribute('aria-pressed', 'false');
+    layoutSideBtn?.setAttribute('aria-pressed', 'true');
+    layoutStackBtn?.setAttribute('aria-pressed', 'false');
   } else {
     playerSectionEl.classList.remove('layout-side');
-    layoutStackBtn && layoutStackBtn.setAttribute('aria-pressed', 'true');
-    layoutSideBtn && layoutSideBtn.setAttribute('aria-pressed', 'false');
+    layoutStackBtn?.setAttribute('aria-pressed', 'true');
+    layoutSideBtn?.setAttribute('aria-pressed', 'false');
   }
   try { localStorage.setItem('mzv_layout', mode); } catch (_) {}
 }
 
-if (layoutStackBtn) layoutStackBtn.addEventListener('click', function () { applyLayout('stack'); });
-if (layoutSideBtn)  layoutSideBtn.addEventListener('click',  function () { applyLayout('side'); });
+layoutStackBtn?.addEventListener('click', () => applyLayout('stack'));
+layoutSideBtn?.addEventListener('click',  () => applyLayout('side'));
 
-// Init: lees voorkeur uit localStorage — op mobiel altijd stack forceren
 function isMobile() { return window.matchMedia('(max-width: 720px)').matches; }
 try {
   const saved = localStorage.getItem('mzv_layout');
-  if (isMobile()) {
-    // Op mobiel altijd onder elkaar (geen toggle zichtbaar)
-    applyLayout('stack');
-  } else if (saved === 'side' || saved === 'stack') {
-    applyLayout(saved);
-  }
+  if (isMobile()) { applyLayout('stack'); }
+  else if (saved === 'side' || saved === 'stack') { applyLayout(saved); }
 } catch (_) {}
 
-// Wanneer scherm krimpt naar mobiel: forceer stack
-window.addEventListener('resize', function () {
-  if (isMobile() && playerSectionEl && playerSectionEl.classList.contains('layout-side')) {
+window.addEventListener('resize', () => {
+  if (isMobile() && playerSectionEl?.classList.contains('layout-side')) {
     playerSectionEl.classList.remove('layout-side');
   }
 });
 
+// ============================================================
+// Deep link
+// ============================================================
 (async function deepLink() {
   const params = new URLSearchParams(location.search);
   const id = params.get('id');
