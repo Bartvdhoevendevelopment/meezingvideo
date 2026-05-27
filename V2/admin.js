@@ -634,6 +634,20 @@ function renderTimingList() {
   });
   wireRowActions(list);
 
+  // Klik ergens op de regel (behalve op een knop/input/grip) = cursor naar deze regel
+  list.querySelectorAll('.adm-timing-row').forEach(row => {
+    row.addEventListener('click', e => {
+      if (e.target.closest('button, input, .row-grip')) return;
+      const i = +row.dataset.lineIndex;
+      if (i === syncCursor) return;
+      syncCursor = i;
+      // Update DOM zonder full re-render zodat scrollpositie en video ongemoeid blijven
+      list.querySelectorAll('.adm-timing-row').forEach(r => {
+        r.classList.toggle('is-cursor', +r.dataset.lineIndex === syncCursor);
+      });
+    });
+  });
+
   // Geen paginatie meer in Sync — alles scrollt
   const pager = document.getElementById('timingPager');
   if (pager) pager.hidden = true;
@@ -789,10 +803,21 @@ function findActiveLineIndex(t) {
 }
 
 function highlightActiveTimingRow(t) {
-  // Tijdelijk uit: alleen blauwe spatiebalk-cursor zichtbaar.
-  // Zorg ook dat eventueel achtergebleven .is-active classes verdwijnen.
   const list = document.getElementById('timingRows');
-  if (!list) return;
+  if (!list || activeTab !== 'timing') return;
+  // Blauwe cursor automatisch mee laten lopen met de videotijd.
+  // Alleen vooruit: zodra de tijd voorbij de regel-na-de-cursor komt, schuift
+  // de cursor mee. Dat voorkomt geflap met de spatiebalk (die zet 'm op i+1
+  // terwijl de videotijd nog op i staat).
+  const activeIndex = findActiveLineIndex(t);
+  if (activeIndex > syncCursor) {
+    syncCursor = activeIndex;
+    list.querySelectorAll('.adm-timing-row').forEach(row => {
+      row.classList.toggle('is-cursor', +row.dataset.lineIndex === syncCursor);
+    });
+    scrollCursorIntoView(syncCursor);
+  }
+  // Eventuele oranje active-classes opruimen (uit-gezet sinds tab 4)
   list.querySelectorAll('.adm-timing-row.is-active').forEach(row => {
     row.classList.remove('is-active');
   });
