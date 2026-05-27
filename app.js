@@ -134,9 +134,10 @@ async function showAllSongs() {
   try {
     const { data, error } = await sb
       .from('meezingvideo_songs')
-      .select('id, title, artist, youtube_id')
+      .select('id, title, artist, youtube_id, view_count')
+      .order('view_count', { ascending: false, nullsFirst: false })
       .order('title', { ascending: true })
-      .limit(20);
+      .limit(50);
     if (error) throw error;
     renderResults(data || []);
   } catch (err) {
@@ -148,10 +149,11 @@ async function runSearch(q) {
   try {
     const { data, error } = await sb
       .from('meezingvideo_songs')
-      .select('id, title, artist, youtube_id')
+      .select('id, title, artist, youtube_id, view_count')
       .or('title.ilike.%' + q + '%,artist.ilike.%' + q + '%')
+      .order('view_count', { ascending: false, nullsFirst: false })
       .order('title', { ascending: true })
-      .limit(20);
+      .limit(50);
     if (error) throw error;
     renderResults(data || []);
   } catch (err) {
@@ -170,18 +172,41 @@ function renderResults(items) {
     const row = document.createElement('div');
     row.className = 'search-result';
     row.setAttribute('role', 'option');
+    const views = Number.isFinite(it.view_count) ? it.view_count : 0;
+    const viewsLabel = views === 1 ? '1 keer' : views + ' keer';
     row.innerHTML =
       '<img src="https://i.ytimg.com/vi/' + it.youtube_id + '/mqdefault.jpg" alt="" loading="lazy" />' +
       '<div class="meta">' +
         '<div class="title">' + escapeHtml(it.title) + '</div>' +
         '<div class="artist">' + escapeHtml(it.artist || '') + '</div>' +
       '</div>' +
-      '<span class="tag">Meezingen</span>';
+      '<span class="tag views-tag" title="' + views + ' keer afgespeeld">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">' +
+          '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>' +
+        '</svg> ' + viewsLabel +
+      '</span>';
     row.addEventListener('click', () => selectSong(it));
     searchResults.appendChild(row);
   }
   searchResults.classList.add('open');
+  fitSearchResultsToViewport();
 }
+
+// Dynamisch max-height zodat dropdown altijd binnen viewport blijft
+function fitSearchResultsToViewport() {
+  if (!searchResults) return;
+  const rect = searchResults.getBoundingClientRect();
+  const viewH = window.innerHeight || document.documentElement.clientHeight;
+  const available = viewH - rect.top - 16; // 16px marge onderaan
+  if (available > 120) {
+    searchResults.style.maxHeight = Math.max(120, available) + 'px';
+  }
+}
+
+// Herbereken bij venstergrootte-wijziging
+window.addEventListener('resize', () => {
+  if (searchResults?.classList.contains('open')) fitSearchResultsToViewport();
+});
 
 // ============================================================
 // Select song
@@ -194,6 +219,8 @@ async function selectSong(song) {
   lyricsListEl.innerHTML = '<div class="lyrics-empty"><div class="spinner"></div></div>';
   activeIdx = -1;
   closeTimingPopup();
+  // Verhoog view-counter (fire-and-forget, faalt stil als kolom of functie ontbreekt)
+  sb.rpc('increment_song_views', { song_id: song.id }).catch(() => {});
   try {
     const { data, error } = await sb
       .from('meezingvideo_lyrics')
