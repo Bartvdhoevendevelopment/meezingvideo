@@ -350,7 +350,6 @@ function renderLyricsList() {
     row.className = 'adm-lyrics-row';
     row.innerHTML = `
       <span class="row-num">${i + 1}</span>
-      <span class="row-time-readonly">${fmtTime(line.time)}</span>
       <input class="row-text" type="text" value="${escHtml(line.text)}" placeholder="Tekstregel…" data-i="${i}" />
       ${actionsHtml(i)}
     `;
@@ -574,7 +573,7 @@ function importPastedLyrics() {
   setSearchStatus('');
   renderLyricsList();
   renderTimingList();
-  toast(`${parsed.length} regel${parsed.length === 1 ? '' : 's'} geïmporteerd → zet de tijden in tab Timing`);
+  toast(`${parsed.length} regel${parsed.length === 1 ? '' : 's'} geïmporteerd → zet de tijden in tab Sync`);
 }
 
 function updateSearchQuery() {

@@ -459,7 +459,7 @@ body.admin-v2 {
 }
 .adm-lyrics-row {
   display: grid;
-  grid-template-columns: 28px 60px 1fr auto;
+  grid-template-columns: 28px 1fr auto;
   gap: 8px;
   align-items: center;
   background: var(--surface2, #1e1e2e);
