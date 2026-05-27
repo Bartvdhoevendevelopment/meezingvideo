@@ -584,9 +584,11 @@ function updateSearchQuery() {
   const dbk  = document.getElementById('manualDbk');
   const sela = document.getElementById('manualSela');
   const net  = document.getElementById('manualNet');
+  const gg   = document.getElementById('manualGoogle');
   if (dbk)  dbk.href  = `https://www.google.com/search?q=${encodeURIComponent('site:dagelijksebroodkruimels.nl ' + txt)}`;
   if (sela) sela.href = `https://www.google.com/search?q=${encodeURIComponent('site:sela.nl ' + txt)}`;
   if (net)  net.href  = `https://www.google.com/search?q=${encodeURIComponent('site:songteksten.net ' + txt)}`;
+  if (gg)   gg.href   = `https://www.google.com/search?q=${encodeURIComponent(txt + ' songtekst')}`;
 }
 
 // ── Shift-all timing ─────────────────────────────────────────
