@@ -102,6 +102,9 @@ function setTabsEnabled(songSelected) {
     const btn = document.querySelector(`.adm-tab[data-tab="${tab}"]`);
     if (btn) btn.disabled = !songSelected;
   });
+  if (name === 'timing' && currentSong?.youtube_id) initYT(currentSong.youtube_id);
+  if (name === 'lyrics') renderLyricsList();
+  if (name === 'timing') renderTimingList();
 }
 
 function updateSongContext() {
