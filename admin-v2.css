@@ -468,6 +468,45 @@ body.admin-v2 {
   padding: 6px 10px;
   flex-shrink: 0;
 }
+
+/* Per-regel actie-knoppen (omhoog/omlaag/kopieer/verwijder) */
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.row-act {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim, #888);
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.row-act svg { width: 12px; height: 12px; }
+.row-act:hover:not(:disabled) {
+  background: var(--surface, #16161f);
+  color: var(--text, #f5f5f0);
+  border-color: var(--border, #2a2a38);
+}
+.row-act.row-del:hover:not(:disabled) {
+  background: #c0392b;
+  color: #fff;
+  border-color: transparent;
+}
+.row-act.row-copy:hover:not(:disabled) {
+  color: var(--accent, #d97757);
+}
+.row-act:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
 .adm-lyrics-row .row-num {
   font-size: 11px;
   color: var(--text-dim, #666);
@@ -495,18 +534,7 @@ body.admin-v2 {
   background: var(--bg, #0a0a0f);
   outline: 1px solid var(--accent, #d97757);
 }
-.adm-lyrics-row .row-del {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-dim, #666);
-  width: 26px; height: 26px;
-  border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
-}
-.adm-lyrics-row .row-del:hover { background: #c0392b; color: #fff; }
-.adm-lyrics-row .row-del svg { width: 12px; height: 12px; }
+/* (.adm-lyrics-row .row-del verwijderd — .row-act styling regelt dit nu) */
 
 .adm-lyrics-empty {
   flex: 1;

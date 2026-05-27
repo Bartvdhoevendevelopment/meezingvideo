@@ -2,7 +2,6 @@
    admin.js  —  Meezingvideo beheermodule (V2, tab-based)
    ============================================================ */
 
-// ── Supabase client ─────────────────────────────────────────
 const { createClient } = supabase;
 const { supabaseUrl, supabaseAnonKey } = window.MEEZINGVIDEO_CONFIG;
 const db = createClient(supabaseUrl, supabaseAnonKey);
@@ -20,7 +19,6 @@ let ytReady       = false;
 let timeInterval  = null;
 let lastTimeSec   = 0;
 
-// Pagination sizes — bepaalt hoeveel rows er per pagina in beeld komen
 const SONGS_PER_PAGE   = 8;
 const LYRICS_PER_PAGE  = 9;
 const TIMING_PER_PAGE  = 8;
@@ -94,7 +92,6 @@ function switchTab(name) {
     p.classList.toggle('active', match);
     p.hidden = !match;
   });
-  // wanneer naar timing geschakeld wordt en de video nog niet geïnit is, doe het nu
   if (name === 'timing' && currentSong?.youtube_id) initYT(currentSong.youtube_id);
   if (name === 'lyrics') renderLyricsList();
   if (name === 'timing') renderTimingList();
@@ -107,7 +104,6 @@ function setTabsEnabled(songSelected) {
   });
 }
 
-// ── Song context bar in header ───────────────────────────────
 function updateSongContext() {
   const ctx = document.getElementById('songContext');
   if (!ctx) return;
@@ -167,7 +163,6 @@ function renderSongGrid() {
     });
   }
 
-  // Pager
   const pager = document.getElementById('songPager');
   if (totalPages > 1) {
     pager.hidden = false;
@@ -192,7 +187,6 @@ async function selectSong(id) {
   lines = (lyricsData || []).map(r => ({ id: r.id, time: r.time, text: r.text }));
   lyricsPage = 0; timingPage = 0;
 
-  // Vul detail-form
   document.getElementById('fieldTitle').value       = song.title || '';
   document.getElementById('fieldArtist').value      = song.artist || '';
   document.getElementById('fieldYoutube').value     = song.youtube_id || '';
@@ -226,7 +220,7 @@ function newSong() {
   document.getElementById('deleteSongBtn').hidden = true;
   updateSongContext();
   updateSearchQuery();
-  setTabsEnabled(false); // pas na opslaan komen tab 2 en 3 vrij
+  setTabsEnabled(false);
   renderSongGrid();
   document.getElementById('fieldTitle').focus();
 }
@@ -277,6 +271,53 @@ async function deleteSong() {
   loadSongs();
 }
 
+// ── Regel-acties: omhoog/omlaag/kopieer ──────────────────────
+function moveLine(i, delta) {
+  const j = i + delta;
+  if (j < 0 || j >= lines.length) return;
+  const tmp = lines[i]; lines[i] = lines[j]; lines[j] = tmp;
+  if (activeTab === 'lyrics') lyricsPage = Math.floor(j / LYRICS_PER_PAGE);
+  if (activeTab === 'timing') timingPage = Math.floor(j / TIMING_PER_PAGE);
+  renderLyricsList();
+  renderTimingList();
+}
+
+function duplicateLine(i) {
+  if (i < 0 || i >= lines.length) return;
+  const copy = { time: lines[i].time, text: lines[i].text };
+  lines.splice(i + 1, 0, copy);
+  if (activeTab === 'lyrics') lyricsPage = Math.floor((i + 1) / LYRICS_PER_PAGE);
+  if (activeTab === 'timing') timingPage = Math.floor((i + 1) / TIMING_PER_PAGE);
+  renderLyricsList();
+  renderTimingList();
+}
+
+// ── SVG icons voor acties (DRY) ──────────────────────────────
+const SVG_UP   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>';
+const SVG_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+const SVG_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const SVG_DEL  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+
+function actionsHtml(i) {
+  return `<div class="row-actions">
+    <button class="row-act row-up"   title="Verplaats omhoog" data-i="${i}" ${i === 0 ? 'disabled' : ''}>${SVG_UP}</button>
+    <button class="row-act row-down" title="Verplaats omlaag" data-i="${i}" ${i === lines.length - 1 ? 'disabled' : ''}>${SVG_DOWN}</button>
+    <button class="row-act row-copy" title="Kopieer regel eronder" data-i="${i}">${SVG_COPY}</button>
+    <button class="row-act row-del"  title="Verwijder regel" data-i="${i}">${SVG_DEL}</button>
+  </div>`;
+}
+
+function wireRowActions(list) {
+  list.querySelectorAll('.row-up').forEach(btn => btn.addEventListener('click', () => moveLine(+btn.dataset.i, -1)));
+  list.querySelectorAll('.row-down').forEach(btn => btn.addEventListener('click', () => moveLine(+btn.dataset.i, +1)));
+  list.querySelectorAll('.row-copy').forEach(btn => btn.addEventListener('click', () => duplicateLine(+btn.dataset.i)));
+  list.querySelectorAll('.row-del').forEach(btn => btn.addEventListener('click', () => {
+    lines.splice(+btn.dataset.i, 1);
+    renderLyricsList();
+    renderTimingList();
+  }));
+}
+
 // ── Tab 2: Songtekst-editor (compact, tekst-focus) ───────────
 function renderLyricsList() {
   const list = document.getElementById('lyricsList');
@@ -311,9 +352,7 @@ function renderLyricsList() {
       <span class="row-num">${i + 1}</span>
       <span class="row-time-readonly">${fmtTime(line.time)}</span>
       <input class="row-text" type="text" value="${escHtml(line.text)}" placeholder="Tekstregel…" data-i="${i}" />
-      <button class="row-del" title="Verwijder regel" data-i="${i}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-      </button>
+      ${actionsHtml(i)}
     `;
     list.appendChild(row);
   });
@@ -321,15 +360,8 @@ function renderLyricsList() {
   list.querySelectorAll('.row-text').forEach(inp => {
     inp.addEventListener('input', () => { lines[+inp.dataset.i].text = inp.value; });
   });
-  list.querySelectorAll('.row-del').forEach(btn => {
-    btn.addEventListener('click', () => {
-      lines.splice(+btn.dataset.i, 1);
-      renderLyricsList();
-      renderTimingList();
-    });
-  });
+  wireRowActions(list);
 
-  // Pager
   const pager = document.getElementById('lyricsPager');
   if (totalPages > 1) {
     pager.hidden = false;
@@ -393,9 +425,7 @@ function renderTimingList() {
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>
       </button>
-      <button class="row-del" title="Verwijder regel" data-i="${i}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-      </button>
+      ${actionsHtml(i)}
     `;
     list.appendChild(row);
   });
@@ -429,15 +459,8 @@ function renderTimingList() {
       if (ytPlayer?.playVideo) ytPlayer.playVideo();
     });
   });
-  list.querySelectorAll('.row-del').forEach(btn => {
-    btn.addEventListener('click', () => {
-      lines.splice(+btn.dataset.i, 1);
-      renderTimingList();
-      renderLyricsList();
-    });
-  });
+  wireRowActions(list);
 
-  // Pager
   const pager = document.getElementById('timingPager');
   if (totalPages > 1) {
     pager.hidden = false;
@@ -476,14 +499,14 @@ async function saveLyrics() {
   toast('Songtekst opgeslagen ✓');
 }
 
-// ── Songtekst opzoeken via AI (Claude, server-side) ──────────
+// ── Songtekst opzoeken via /api/find-lyrics ──────────────────
 function setSearchStatus(text, type = 'info') {
   const el = document.getElementById('searchStatus');
   if (!el) return;
   if (!text) { el.hidden = true; return; }
   el.hidden = false;
   el.textContent = text;
-  el.dataset.type = type; // info|error|success
+  el.dataset.type = type;
 }
 
 async function runAutoSearch() {
@@ -493,7 +516,7 @@ async function runAutoSearch() {
   const result = document.getElementById('lyricsResult');
   const btn    = document.getElementById('searchBtn');
   btn.disabled = true;
-  setSearchStatus('Bezig met zoeken op Songteksten.net…', 'info');
+  setSearchStatus('Bezig met zoeken…', 'info');
 
   try {
     const { data: { session } } = await db.auth.getSession();
@@ -529,9 +552,8 @@ function importPastedLyrics() {
   raw.split('\n').forEach(ln => {
     ln = ln.replace(/\s+/g, ' ').trim();
     if (!ln) return;
-    if (/^\[.*\]$/.test(ln)) return;          // [Refrein]
-    if (/^\(.*\)$/.test(ln)) return;          // (2x)
-    // Sla disclaimer/credits van Songteksten.net over
+    if (/^\[.*\]$/.test(ln)) return;
+    if (/^\(.*\)$/.test(ln)) return;
     if (/songteksten\.net|alle rechten|toestemming|stichting femu/i.test(ln)) return;
     if (/laatst gewijzigd/i.test(ln)) return;
 
@@ -555,13 +577,11 @@ function importPastedLyrics() {
   toast(`${parsed.length} regel${parsed.length === 1 ? '' : 's'} geïmporteerd → zet de tijden in tab Timing`);
 }
 
-// ── Pre-fill zoekveld + fallback-links ───────────────────────
 function updateSearchQuery() {
   const q = document.getElementById('searchQuery');
   if (!q) return;
   const txt = currentSong ? [currentSong.title, currentSong.artist].filter(Boolean).join(' ') : '';
   q.value = txt;
-  // Update handmatige links
   const enc = encodeURIComponent(txt);
   const nl  = document.getElementById('manualNl');
   const net = document.getElementById('manualNet');
@@ -614,7 +634,6 @@ function showAdmin() {
 document.addEventListener('DOMContentLoaded', () => {
   init();
 
-  // Login
   document.getElementById('loginForm')?.addEventListener('submit', async e => {
     e.preventDefault();
     const email    = document.getElementById('loginEmail').value;
@@ -627,7 +646,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('logoutBtn')?.addEventListener('click', () => db.auth.signOut());
 
-  // Tab buttons
   document.querySelectorAll('.adm-tab').forEach(t => {
     t.addEventListener('click', () => {
       if (t.disabled) return;
@@ -635,24 +653,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Song filter
   document.getElementById('songFilter')?.addEventListener('input', () => {
     songPage = 0;
     renderSongGrid();
   });
 
-  // Song actions
   document.getElementById('newSongBtn')?.addEventListener('click', newSong);
   document.getElementById('saveSongBtn')?.addEventListener('click', saveSong);
   document.getElementById('deleteSongBtn')?.addEventListener('click', deleteSong);
 
-  // Lyrics actions
   document.getElementById('addLineBtn')?.addEventListener('click', () => {
     if (!currentSong) { toast('Selecteer eerst een lied', false); return; }
     const t = ytPlayer?.getCurrentTime?.() ?? lastTimeSec;
     lines.push({ time: parseFloat(t.toFixed(2)), text: '' });
     sortLines();
-    // ga naar laatste pagina
     lyricsPage = Math.floor((lines.length - 1) / LYRICS_PER_PAGE);
     renderLyricsList();
     renderTimingList();
@@ -676,17 +690,14 @@ document.addEventListener('DOMContentLoaded', () => {
     toast('Regels gesorteerd op tijd');
   });
 
-  // Songtekst zoeken (auto) + importeren
   document.getElementById('searchForm')?.addEventListener('submit', e => {
     e.preventDefault();
     runAutoSearch();
   });
   document.getElementById('importLyricsBtn')?.addEventListener('click', importPastedLyrics);
 
-  // Shift-all
   initShiftControls();
 
-  // Pagers
   document.getElementById('songPager')?.addEventListener('click', e => {
     const btn = e.target.closest('[data-dir]'); if (!btn) return;
     songPage += parseInt(btn.dataset.dir, 10);
