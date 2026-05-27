@@ -459,7 +459,7 @@ body.admin-v2 {
 }
 .adm-lyrics-row {
   display: grid;
-  grid-template-columns: 28px 1fr auto;
+  grid-template-columns: 20px 28px 1fr auto;
   gap: 8px;
   align-items: center;
   background: var(--surface2, #1e1e2e);
@@ -467,6 +467,34 @@ body.admin-v2 {
   border-radius: 8px;
   padding: 6px 10px;
   flex-shrink: 0;
+  transition: background 0.12s, border-color 0.12s, opacity 0.12s;
+}
+
+/* Sleep-handvat */
+.row-grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: var(--text-dim, #555);
+  height: 100%;
+  user-select: none;
+  -webkit-user-drag: element;
+}
+.row-grip:active { cursor: grabbing; }
+.row-grip:hover { color: var(--text, #f5f5f0); }
+.row-grip svg { width: 14px; height: 14px; pointer-events: none; }
+
+/* States tijdens drag-and-drop */
+.adm-lyrics-row.dragging,
+.adm-timing-row.dragging {
+  opacity: 0.35;
+}
+.adm-lyrics-row.drag-over,
+.adm-timing-row.drag-over {
+  border-color: var(--accent, #d97757);
+  background: rgba(217, 119, 87, 0.14);
+  box-shadow: 0 0 0 1px var(--accent, #d97757) inset;
 }
 
 /* Per-regel actie-knoppen (omhoog/omlaag/kopieer/verwijder) */
@@ -728,7 +756,7 @@ body.admin-v2 {
 }
 .adm-timing-row {
   display: grid;
-  grid-template-columns: 28px auto 1fr auto auto;
+  grid-template-columns: 20px 28px auto 1fr auto auto;
   gap: 8px;
   align-items: center;
   background: var(--surface2, #1e1e2e);
@@ -736,6 +764,7 @@ body.admin-v2 {
   border-radius: 8px;
   padding: 8px 10px;
   flex-shrink: 0;
+  transition: background 0.12s, border-color 0.12s, opacity 0.12s;
 }
 .adm-timing-row .row-num {
   font-size: 11px;

@@ -297,6 +297,68 @@ const SVG_UP   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const SVG_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
 const SVG_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 const SVG_DEL  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+const SVG_GRIP = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg>';
+
+function gripHtml(i) {
+  return `<span class="row-grip" draggable="true" data-i="${i}" title="Sleep om te verplaatsen">${SVG_GRIP}</span>`;
+}
+
+// ── Drag-and-drop voor regels ────────────────────────────────
+let dragSrcIdx = null;
+
+function handleDragStart(e) {
+  const grip = e.target.closest('.row-grip');
+  if (!grip) return;
+  dragSrcIdx = +grip.dataset.i;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', String(dragSrcIdx));
+  const row = grip.closest('.adm-lyrics-row, .adm-timing-row');
+  if (row) setTimeout(() => row.classList.add('dragging'), 0);
+}
+
+function handleDragEnd(e) {
+  dragSrcIdx = null;
+  document.querySelectorAll('.dragging').forEach(r => r.classList.remove('dragging'));
+  document.querySelectorAll('.drag-over').forEach(r => r.classList.remove('drag-over'));
+}
+
+function handleDragOver(e) {
+  if (dragSrcIdx === null) return;
+  const row = e.target.closest('.adm-lyrics-row, .adm-timing-row');
+  if (!row) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const container = row.parentElement;
+  container.querySelectorAll('.drag-over').forEach(r => r.classList.remove('drag-over'));
+  row.classList.add('drag-over');
+}
+
+function handleDrop(e) {
+  if (dragSrcIdx === null) return;
+  const row = e.target.closest('.adm-lyrics-row, .adm-timing-row');
+  if (!row) return;
+  e.preventDefault();
+  const targetIdx = +row.dataset.i;
+  if (Number.isNaN(targetIdx) || targetIdx === dragSrcIdx) { handleDragEnd(); return; }
+  reorderLine(dragSrcIdx, targetIdx);
+  dragSrcIdx = null;
+  document.querySelectorAll('.dragging, .drag-over').forEach(r => {
+    r.classList.remove('dragging'); r.classList.remove('drag-over');
+  });
+}
+
+function reorderLine(src, dst) {
+  if (src === dst || src < 0 || src >= lines.length || dst < 0 || dst >= lines.length) return;
+  const item = lines.splice(src, 1)[0];
+  // Compenseer index-shift na splice
+  const adjusted = src < dst ? dst - 1 : dst;
+  lines.splice(adjusted, 0, item);
+  // Houd zichtbaarheid van verschoven regel
+  if (activeTab === 'lyrics') lyricsPage = Math.floor(adjusted / LYRICS_PER_PAGE);
+  if (activeTab === 'timing') timingPage = Math.floor(adjusted / TIMING_PER_PAGE);
+  renderLyricsList();
+  renderTimingList();
+}
 
 function actionsHtml(i) {
   return `<div class="row-actions">
@@ -348,7 +410,9 @@ function renderLyricsList() {
     const i = start + idxInPage;
     const row = document.createElement('div');
     row.className = 'adm-lyrics-row';
+    row.dataset.i = i;
     row.innerHTML = `
+      ${gripHtml(i)}
       <span class="row-num">${i + 1}</span>
       <input class="row-text" type="text" value="${escHtml(line.text)}" placeholder="Tekstregel…" data-i="${i}" />
       ${actionsHtml(i)}
@@ -403,7 +467,9 @@ function renderTimingList() {
     const row = document.createElement('div');
     row.className = 'adm-timing-row';
     row.dataset.lineIndex = i;
+    row.dataset.i = i;
     row.innerHTML = `
+      ${gripHtml(i)}
       <span class="row-num">${i + 1}</span>
       <div class="row-time-controls">
         <button class="time-btn" data-i="${i}" data-d="-1"  title="-1s">−1</button>
@@ -697,6 +763,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('importLyricsBtn')?.addEventListener('click', importPastedLyrics);
 
   initShiftControls();
+
+  // Drag-and-drop voor regels (gedelegeerd op de lijst-containers)
+  ['lyricsList', 'timingRows'].forEach(id => {
+    const list = document.getElementById(id);
+    if (!list) return;
+    list.addEventListener('dragstart', handleDragStart);
+    list.addEventListener('dragend',   handleDragEnd);
+    list.addEventListener('dragover',  handleDragOver);
+    list.addEventListener('drop',      handleDrop);
+  });
 
   document.getElementById('songPager')?.addEventListener('click', e => {
     const btn = e.target.closest('[data-dir]'); if (!btn) return;
