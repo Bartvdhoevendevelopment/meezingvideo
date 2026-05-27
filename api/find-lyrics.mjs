@@ -1,10 +1,10 @@
 // ============================================================
 // /api/find-lyrics  —  Meezingvideo songtekst-lookup
 //
-// Server-side multi-source scraper. Probeert in volgorde:
-//   1. Sela.nl                    (als 'sela' in query)
-//   2. DagelijkseBroodkruimels.nl (als 'opwekking' in query)
-//   3. Songteksten.net            (altijd als laatste vangnet)
+// Geen zoekmachine meer (DDG/Bing geven 403 vanaf Vercel-IPs).
+// Per bron hun eigen index-pagina ophalen en op titel matchen.
+// Voor Opwekking werkt ook directe nummer-lookup
+// ("Opwekking 281" -> /opwekking/281).
 //
 // Auth: vereist een geldige Supabase access_token.
 // ============================================================
@@ -14,35 +14,27 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
 
-// ── Bronnen ─────────────────────────────────────────────────
+let indexCacheDbk  = { data: null, time: 0 };
+let indexCacheSela = { data: null, time: 0 };
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
 const SOURCES = [
   {
-    name:        'sela',
-    label:       'Sela.nl',
-    triggerRe:   /\bsela\b/i,
-    searchTerm:  q => 'site:sela.nl/liederen ' + q,
-    urlRe:       /https?:\/\/(?:www\.)?sela\.nl\/liederen\/\d+\/[^"'<>\s]+\.html/i,
-    extract:     extractSela
+    name:    'sela',
+    label:   'Sela.nl',
+    matches: q => /\bsela\b/i.test(q),
+    findUrl: findOnSela,
+    extract: extractSela
   },
   {
-    name:        'broodkruimels',
-    label:       'DagelijkseBroodkruimels.nl',
-    triggerRe:   /\bopwekking\b/i,
-    searchTerm:  q => 'site:dagelijksebroodkruimels.nl/songteksten ' + q,
-    urlRe:       /https?:\/\/(?:www\.)?dagelijksebroodkruimels\.nl\/songteksten\/[^"'<>\s]+/i,
-    extract:     extractGeneric
-  },
-  {
-    name:        'songtekstennet',
-    label:       'Songteksten.net',
-    triggerRe:   null, // altijd als vangnet
-    searchTerm:  q => 'site:songteksten.net ' + q,
-    urlRe:       /https?:\/\/(?:www\.)?songteksten\.net\/lyric\/[^"'<>\s]+\.html/i,
-    extract:     extractSongtekstenNet
+    name:    'broodkruimels',
+    label:   'DagelijkseBroodkruimels.nl',
+    matches: q => /\bopwekking\b/i.test(q),
+    findUrl: findOnDbk,
+    extract: extractGeneric
   }
 ];
 
-// ── Handler ─────────────────────────────────────────────────
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin',  '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -50,141 +42,186 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET')     return res.status(405).json({ error: 'Methode niet toegestaan' });
 
-  // Auth
   const auth = req.headers.authorization || '';
   if (!auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Login vereist' });
   try {
     const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': auth }
     });
-    if (!userRes.ok) return res.status(401).json({ error: 'Sessie ongeldig of verlopen — log opnieuw in' });
+    if (!userRes.ok) return res.status(401).json({ error: 'Sessie ongeldig - log opnieuw in' });
   } catch (e) {
     return res.status(502).json({ error: 'Kan auth-server niet bereiken: ' + e.message });
   }
 
-  // Query
   const q = (req.query.q || '').toString().trim().slice(0, 200);
   if (!q) return res.status(400).json({ error: 'Geen zoekopdracht meegegeven' });
 
-  // Volgorde bepalen op basis van triggers
-  const primary   = SOURCES.filter(s => s.triggerRe && s.triggerRe.test(q));
+  const primary   = SOURCES.filter(s => s.matches(q));
   const fallbacks = SOURCES.filter(s => !primary.includes(s));
   const order     = [...primary, ...fallbacks];
 
-  const attempts = [];
+  const tried = [];
   for (const source of order) {
     try {
-      const result = await tryFromSource(source, q);
-      if (result?.lyrics) {
-        return res.status(200).json({
-          lyrics:   result.lyrics,
-          source:   result.url,
-          provider: source.label,
-          tried:    attempts.concat({ provider: source.label, ok: true })
-        });
-      }
-      attempts.push({ provider: source.label, ok: false, reason: 'geen tekst' });
+      const found = await source.findUrl(q);
+      if (!found?.url) { tried.push({ p: source.label, why: 'titel niet gevonden in index' }); continue; }
+
+      const pageRes = await fetch(found.url, { headers: { 'User-Agent': UA } });
+      if (!pageRes.ok) { tried.push({ p: source.label, why: 'pagina gaf ' + pageRes.status }); continue; }
+
+      const html = await pageRes.text();
+      const lyrics = source.extract(html);
+      if (!lyrics) { tried.push({ p: source.label, why: 'kon tekst niet uit pagina halen' }); continue; }
+
+      return res.status(200).json({
+        lyrics,
+        source:   found.url,
+        provider: source.label,
+        matched:  found.matched || null
+      });
     } catch (e) {
-      attempts.push({ provider: source.label, ok: false, reason: e.message });
+      tried.push({ p: source.label, why: e.message || String(e) });
     }
   }
 
-  // Niets gevonden
-  const reasons = attempts.map(a => `${a.provider}: ${a.reason}`).join(' · ');
+  const reasons = tried.map(t => t.p + ': ' + t.why).join(' / ');
   return res.status(404).json({
-    error: `Geen enkele bron leverde een tekst (${reasons}). Probeer een specifiekere query of zoek handmatig.`
+    error: 'Geen bron leverde een tekst (' + reasons + '). Probeer een specifiekere query (bv. "Opwekking 281" of "Ik zal er zijn Sela"), of zoek handmatig via de links hieronder.'
   });
 }
 
-// ── Per-source pipeline ─────────────────────────────────────
-async function tryFromSource(source, q) {
-  const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(source.searchTerm(q))}`;
-
-  let ddgRes;
-  try { ddgRes = await fetch(ddgUrl, { headers: { 'User-Agent': UA } }); }
-  catch (e) { throw new Error('zoekmachine onbereikbaar'); }
-  if (!ddgRes.ok) throw new Error('zoekmachine gaf ' + ddgRes.status);
-
-  const ddgHtml = await ddgRes.text();
-  const m = ddgHtml.match(source.urlRe);
-  if (!m) throw new Error('geen pagina gevonden');
-
-  // DDG geeft soms URL-encoded redirects of html-encoded entiteiten
-  let lyricUrl = m[0].replace(/&amp;/g, '&');
-  // Sommige DDG-resultaten zitten achter een redirect-link "uddg=" — schoonmaken
-  if (lyricUrl.includes('uddg=')) {
-    const u = new URL(lyricUrl);
-    const real = u.searchParams.get('uddg');
-    if (real) lyricUrl = decodeURIComponent(real);
-  }
-
-  let pageRes;
-  try { pageRes = await fetch(lyricUrl, { headers: { 'User-Agent': UA } }); }
-  catch (e) { throw new Error('pagina onbereikbaar'); }
-  if (!pageRes.ok) throw new Error('pagina gaf ' + pageRes.status);
-
-  const pageHtml = await pageRes.text();
-  const lyrics = source.extract(pageHtml);
-  if (!lyrics) throw new Error('tekst niet uit pagina gehaald');
-  return { lyrics, url: lyricUrl };
+// ── Sela.nl ─────────────────────────────────────────────────
+async function findOnSela(query) {
+  const index = await getSelaIndex();
+  if (!index.length) return null;
+  const cleaned = query.replace(/\bsela\b/gi, '').trim();
+  const best = bestTitleMatch(index, cleaned);
+  if (!best) return null;
+  return { url: best.url, matched: best.title };
 }
 
-// ── Extractors ──────────────────────────────────────────────
+async function getSelaIndex() {
+  if (indexCacheSela.data && (Date.now() - indexCacheSela.time) < CACHE_TTL_MS) {
+    return indexCacheSela.data;
+  }
+  const res = await fetch('https://www.sela.nl/liederen', { headers: { 'User-Agent': UA } });
+  if (!res.ok) throw new Error('Sela index gaf ' + res.status);
+  const html = await res.text();
 
-// Sela.nl: tekst staat tussen <h2>{titel}</h2> en de regel "Tekst:" / "Muziek:"
+  const items = [];
+  const re = /<a[^>]*href="(\/liederen\/\d+\/[^"]+\.html)"[^>]*>([^<]+)<\/a>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const url = 'https://www.sela.nl' + m[1];
+    const title = m[2].trim();
+    if (title && title.length < 120) items.push({ url, title });
+  }
+  const seen = new Set();
+  const unique = items.filter(i => { if (seen.has(i.url)) return false; seen.add(i.url); return true; });
+  indexCacheSela = { data: unique, time: Date.now() };
+  return unique;
+}
+
+// ── DagelijkseBroodkruimels.nl ─────────────────────────────
+async function findOnDbk(query) {
+  const numMatch = query.match(/\bopwekking\s*(?:nr\.?|nummer)?\s*(\d{1,4})\b/i);
+  if (numMatch) {
+    return {
+      url: 'https://dagelijksebroodkruimels.nl/songteksten/opwekking/' + numMatch[1],
+      matched: 'Opwekking ' + numMatch[1]
+    };
+  }
+  const index = await getDbkIndex();
+  if (!index.length) return null;
+  const cleaned = query.replace(/\bopwekking\b/gi, '').replace(/\bnr\.?\b/gi, '').trim();
+  const best = bestTitleMatch(index, cleaned);
+  if (!best) return null;
+  return { url: best.url, matched: best.title };
+}
+
+async function getDbkIndex() {
+  if (indexCacheDbk.data && (Date.now() - indexCacheDbk.time) < CACHE_TTL_MS) {
+    return indexCacheDbk.data;
+  }
+  const res = await fetch('https://dagelijksebroodkruimels.nl/songteksten/opwekking', {
+    headers: { 'User-Agent': UA }
+  });
+  if (!res.ok) throw new Error('DBK index gaf ' + res.status);
+  const html = await res.text();
+
+  const items = new Map();
+  // Match "N - Titel" patronen (komen voor in title attributes en linktekst)
+  const re = /(\d{1,4})\s*-\s*([^"<>\n\r]{3,100}?)(?:\s*-\s*DagelijkseBroodkruimels)?["<]/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const num = parseInt(m[1], 10);
+    if (num < 1 || num > 9999) continue;
+    const title = m[2].trim();
+    if (!items.has(num)) {
+      items.set(num, {
+        url: 'https://dagelijksebroodkruimels.nl/songteksten/opwekking/' + num,
+        title
+      });
+    }
+  }
+  const arr = [...items.values()];
+  indexCacheDbk = { data: arr, time: Date.now() };
+  return arr;
+}
+
+// ── Titel-matching ─────────────────────────────────────────
+function normalize(s) {
+  return (s || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function bestTitleMatch(items, query) {
+  const qn = normalize(query);
+  if (!qn) return null;
+  const qWords = qn.split(' ').filter(w => w.length >= 3);
+  if (qWords.length === 0) return null;
+
+  let best = null, bestScore = 0;
+  for (const item of items) {
+    const tn = normalize(item.title);
+    if (!tn) continue;
+    let score = 0;
+    for (const w of qWords) if (tn.includes(w)) score++;
+    if (tn === qn) score += 100;
+    if (tn.startsWith(qn)) score += 10;
+    if (qn.startsWith(tn) && tn.length > 5) score += 8;
+    if (tn.length > qn.length * 3) score -= 1;
+    if (score > bestScore) { best = item; bestScore = score; }
+  }
+  if (bestScore < Math.ceil(qWords.length / 2)) return null;
+  return best;
+}
+
+// ── Lyrics extractors ──────────────────────────────────────
 function extractSela(html) {
-  // Probeer eerst de generieke aanpak (JSON-LD, .lyrics selectors)
   const generic = extractGeneric(html);
   if (generic && generic.split('\n').length >= 4) return generic;
 
-  // Heuristiek: zoek de h2-titel en knip alles tot "Tekst:" / "Muziek:" / "©"
   const h2Match = html.match(/<h2[^>]*>[^<]+<\/h2>/i);
   if (!h2Match) return null;
   const afterH2 = html.indexOf(h2Match[0]) + h2Match[0].length;
-
-  // Sluit op de eerste meta-marker
-  const endMarkers = [
-    html.indexOf('Tekst:',       afterH2),
-    html.indexOf('Muziek:',      afterH2),
-    html.indexOf('Gratis blad',  afterH2),
-    html.search(/©\s*\d{4}\s*Stichting/i)
+  const ends = [
+    html.indexOf('Tekst:',      afterH2),
+    html.indexOf('Muziek:',     afterH2),
+    html.indexOf('Gratis blad', afterH2),
+    html.search(/(?:©|&copy;)\s*\d{4}\s*Stichting/i)
   ].filter(i => i > afterH2);
-  if (endMarkers.length === 0) return null;
-  const endIdx = Math.min(...endMarkers);
-
-  const middle = html.substring(afterH2, endIdx);
+  if (!ends.length) return null;
+  const middle = html.substring(afterH2, Math.min(...ends));
   const text = stripHtml(middle);
   if (text.split('\n').length < 3) return null;
   return text;
 }
 
-// Songteksten.net: zoals de oude implementatie
-function extractSongtekstenNet(html) {
-  const generic = extractGeneric(html);
-  if (generic && generic.split('\n').length >= 4) return generic;
-
-  // Heuristiek tussen <h1> en FEMU/disclaimer
-  const h1 = html.search(/<h1[^>]*>/i);
-  const femu = html.search(/(FEMU|toestemming van Stichting|laatst gewijzigd)/i);
-  if (h1 !== -1 && femu !== -1 && femu > h1) {
-    const middle = html.substring(h1, femu);
-    const blockRe = /<(div|p|article|section)[^>]*>([\s\S]*?)<\/\1>/gi;
-    let best = '', bestScore = 0;
-    let m;
-    while ((m = blockRe.exec(middle)) !== null) {
-      const brCount = (m[2].match(/<br\s*\/?>/gi) || []).length;
-      const cleaned = stripHtml(m[2]);
-      const score = brCount * 5 + cleaned.length;
-      if (brCount >= 4 && cleaned.length > 100 && score > bestScore) {
-        best = cleaned; bestScore = score;
-      }
-    }
-    if (best) return best;
-  }
-  return null;
-}
-
-// Generieke extractor: JSON-LD → bekende selectors → null
 function extractGeneric(html) {
   // 1. JSON-LD
   const jsonLdRe = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
@@ -207,11 +244,8 @@ function extractGeneric(html) {
     /<div[^>]*itemprop=["']lyrics["'][^>]*>([\s\S]*?)<\/div>/i,
     /<div[^>]*class=["'][^"']*lyric-body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
     /<div[^>]*class=["'][^"']*lyrics-body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
-    /<div[^>]*class=["'][^"']*lyric_body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
-    /<div[^>]*id=["']lyric["'][^>]*>([\s\S]*?)<\/div>/i,
-    /<div[^>]*id=["']lyrics["'][^>]*>([\s\S]*?)<\/div>/i,
+    /<div[^>]*id=["']lyrics?["'][^>]*>([\s\S]*?)<\/div>/i,
     /<pre[^>]*class=["'][^"']*lyric[^"']*["'][^>]*>([\s\S]*?)<\/pre>/i,
-    /<div[^>]*class=["'][^"']*songtext[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
     /<div[^>]*class=["'][^"']*songtekst[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
   ];
   for (const re of patterns) {
@@ -221,31 +255,39 @@ function extractGeneric(html) {
       if (text && text.split('\n').length >= 3 && text.length > 80) return text;
     }
   }
-  return null;
+
+  // 3. Heuristiek: grootste tekstblok in main/article
+  const mainMatch = html.match(/<(?:main|article)[^>]*>([\s\S]*?)<\/(?:main|article)>/i);
+  const scope = mainMatch ? mainMatch[1] : html;
+  const blockRe = /<(div|p|section|pre)[^>]*>([\s\S]*?)<\/\1>/gi;
+  let best = '', bestScore = 0;
+  let mm;
+  while ((mm = blockRe.exec(scope)) !== null) {
+    if (/nav|menu|footer|header|sidebar|breadcrumb|advert|cookie/i.test(mm[2].slice(0, 200))) continue;
+    const brCount   = (mm[2].match(/<br\s*\/?>/gi) || []).length;
+    const cleaned   = stripHtml(mm[2]);
+    const lineCount = cleaned.split('\n').length;
+    const score     = brCount * 5 + lineCount * 3 + Math.min(cleaned.length, 2000);
+    if (lineCount >= 4 && cleaned.length > 100 && score > bestScore) {
+      best = cleaned; bestScore = score;
+    }
+  }
+  return best || null;
 }
 
-// ── HTML → platte tekst ─────────────────────────────────────
 function stripHtml(s) {
   return s
     .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi,  '\n')
-    .replace(/<\/div>/gi,'\n')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g,  '&')
-    .replace(/&lt;/g,   '<')
-    .replace(/&gt;/g,   '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&#39;/g,  "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&apos;/g, "'")
+    .replace(/<\/p>/gi,   '\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/li>/gi,  '\n')
+    .replace(/<[^>]+>/g,  '')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'").replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'").replace(/&apos;/g, "'")
     .replace(/\r/g, '')
-    .split('\n')
-    .map(l => l.trim())
-    .filter(Boolean)
-    .join('\n');
+    .split('\n').map(l => l.trim()).filter(Boolean).join('\n');
 }
 
 function cleanText(s) {
