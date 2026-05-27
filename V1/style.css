@@ -339,12 +339,16 @@ header.site-header {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow-y: auto;
-  max-height: 50vh;
+  /* ~5 rijen zichtbaar (elk ~96px). Op kleine schermen niet groter dan beschikbare ruimte. */
+  max-height: min(490px, calc(100vh - 280px));
+  max-height: min(490px, calc(100dvh - 280px));
   box-shadow: var(--shadow-strong);
   display: none;
   z-index: 50;
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
 }
 .search-results::-webkit-scrollbar { width: 8px; }
 .search-results::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; }
@@ -872,6 +876,14 @@ textarea {
   color: var(--accent);
   border: 1px solid rgba(217, 119, 87, 0.3);
 }
+.views-tag {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted, #9b9b95);
+  border-color: var(--border, #2a2a38);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.views-tag svg { opacity: 0.7; }
 
 
 /* ============================================================
@@ -933,7 +945,7 @@ textarea {
   .search-box { padding: 4px 4px 4px 20px; border-radius: 14px; gap: 14px; }
   .search-box input { font-size: 16px; padding: 13px 0 13px 8px; }
   .search-box svg { width: 18px; height: 18px; }
-  .search-results { max-height: 55vh; max-height: 55dvh; }
+  .search-results { max-height: 55vh; max-height: 55dvh; max-height: min(55dvh, 440px); }
   .search-result { padding: 10px 12px; gap: 10px; }
   .search-result img { width: 54px; height: 40px; }
   .search-result .title { font-size: 14px; }

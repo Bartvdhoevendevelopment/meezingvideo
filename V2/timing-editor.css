@@ -1,0 +1,191 @@
+/* ============================================================
+   timing-editor.css  —  Inline timing-editor stijlen
+   Voeg toe in index.html: <link rel="stylesheet" href="timing-editor.css" />
+   ============================================================ */
+
+/* ── Lyric-regel layout ──────────────────────────────────── */
+.lyric-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.lyric-text {
+  flex: 1;
+  cursor: pointer;
+}
+
+/* ── Timing-knop naast elke regel ────────────────────────── */
+.lyric-timing-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim, #777);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* toon bij hover op de regel */
+.lyric-line:hover .lyric-timing-btn,
+.lyric-line.active .lyric-timing-btn {
+  opacity: 1;
+}
+
+.lyric-timing-btn:hover {
+  background: rgba(201, 169, 110, 0.15);
+  border-color: var(--accent, #c9a96e);
+  color: var(--accent, #c9a96e);
+}
+
+.lyric-timing-btn svg {
+  flex-shrink: 0;
+}
+
+/* ── Popup ───────────────────────────────────────────────── */
+.timing-popup {
+  position: fixed;
+  z-index: 9999;
+  width: 280px;
+  background: #1a1a27;
+  border: 1px solid rgba(201, 169, 110, 0.35);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+  animation: timingPopupIn 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes timingPopupIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+.timing-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.timing-popup-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--accent, #c9a96e);
+}
+
+.timing-popup-close {
+  background: none;
+  border: none;
+  color: var(--text-dim, #777);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: background 0.12s, color 0.12s;
+}
+.timing-popup-close:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+.timing-popup-lyric {
+  font-size: 13px;
+  color: #ddd;
+  margin-bottom: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+}
+
+.timing-popup-time {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  letter-spacing: .04em;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.timing-popup-btns {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.tpb {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #eee;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.tpb:hover {
+  background: var(--accent, #c9a96e);
+  border-color: transparent;
+  color: #000;
+}
+.tpb.snap {
+  background: rgba(201, 169, 110, 0.12);
+  border-color: rgba(201, 169, 110, 0.3);
+  color: var(--accent, #c9a96e);
+}
+.tpb.snap:hover {
+  background: var(--accent, #c9a96e);
+  color: #000;
+}
+
+.timing-popup-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tpb-save {
+  flex: 1;
+  background: var(--accent, #c9a96e);
+  border: none;
+  color: #000;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 9px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: opacity 0.12s, transform 0.1s;
+}
+.tpb-save:hover    { opacity: 0.88; }
+.tpb-save:active   { transform: scale(0.97); }
+.tpb-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.timing-popup-hint {
+  font-size: 10px;
+  color: var(--text-dim, #666);
+  white-space: nowrap;
+}

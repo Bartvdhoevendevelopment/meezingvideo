@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=3" />
+  <title>Meezingvideo — aanbiddingsliederen met meelopende tekst</title>
+  <meta name="description" content="Aanbiddingsliederen van YouTube met getimede ondertiteling, zodat ook slechthorenden en doven kunnen meezingen." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="timing-editor.css" />
+</head>
+<body>
+  <div class="app">
+
+    <header class="site-header">
+      <div class="brand-area">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18V5l12-2v13" />
+              <circle cx="6" cy="18" r="3" />
+              <circle cx="18" cy="16" r="3" />
+            </svg>
+          </div>
+          <span>Meezingvideo</span>
+        </div>
+
+        <!-- Now playing balk in navbar -->
+        <div class="np-bar" id="npBar" style="display:none;">
+          <span class="np-bar-divider" aria-hidden="true"></span>
+          <div class="np-bar-text">
+            <span class="np-bar-title" id="songTitle">—</span>
+            <span class="np-bar-artist" id="songArtist"></span>
+          </div>
+          <span class="np-bar-status">
+            <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span class="np-bar-status-text">wordt afgespeeld</span>
+          </span>
+        </div>
+      </div>
+      <nav class="nav-actions">
+        <button class="btn btn-ghost" id="backBtn" style="display:none;">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+          Terug naar zoeken
+        </button>
+        <a class="btn btn-ghost" href="admin.html">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+          </svg>
+          Beheer
+        </a>
+      </nav>
+    </header>
+
+    <!-- ========== HOME VIEW (zoeken) ========== -->
+    <main id="homeView" class="view view-home active">
+      <div class="hero">
+        <h1>Meezingen met<br/>aanbiddingsliederen</h1>
+        <p>YouTube-video&#39;s met getimede ondertiteling — zodat iedereen mee kan zingen, ook wie slechthorend of doof is.</p>
+
+        <div class="search-wrap">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"/>
+              <path d="m21 21-4.3-4.3"/>
+            </svg>
+            <input id="searchInput" type="text" placeholder="Zoek een lied of artiest…" autocomplete="off" />
+          </div>
+          <div id="searchResults" class="search-results" role="listbox"></div>
+        </div>
+
+        <p class="hint">Tip: klik in het zoekvak om alle beschikbare liederen te zien.</p>
+      </div>
+    </main>
+
+    <!-- ========== PLAYER VIEW ========== -->
+    <main id="playerView" class="view view-player">
+      <section id="playerSection" class="player-section">
+
+<div class="video-stage">
+          <div class="video-frame">
+            <div id="ytPlayer"></div>
+          </div>
+        </div>
+
+        <div class="lyrics-stage">
+          <div class="lyrics-stage-header">
+            <span class="label">Songtekst</span>
+            <div class="lyrics-toolbar">
+              <div class="layout-toggle" role="group" aria-label="Layout">
+                <button class="layout-btn" id="layoutStackBtn" title="Songtekst onder video" aria-pressed="true">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="3" width="16" height="9" rx="2"/>
+                    <line x1="4" y1="16" x2="20" y2="16"/>
+                    <line x1="4" y1="20" x2="20" y2="20"/>
+                  </svg>
+                  <span>Onder</span>
+                </button>
+                <button class="layout-btn" id="layoutSideBtn" title="Songtekst naast video" aria-pressed="false">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="5" width="11" height="14" rx="2"/>
+                    <line x1="17" y1="8" x2="21" y2="8"/>
+                    <line x1="17" y1="12" x2="21" y2="12"/>
+                    <line x1="17" y1="16" x2="21" y2="16"/>
+                  </svg>
+                  <span>Naast</span>
+                </button>
+              </div>
+              <button class="switch on" id="autoScrollBtn" type="button" role="switch" aria-checked="true" title="Automatisch meescrollen met de muziek">
+                <span class="switch-track" aria-hidden="true">
+                  <span class="switch-thumb"></span>
+                </span>
+                <span class="switch-label">Auto-scroll</span>
+              </button>
+            </div>
+          </div>
+          <div class="lyrics-list lyrics-cinema" id="lyricsList">
+            <div class="lyrics-empty">Geen tekst gevonden voor dit lied.</div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
