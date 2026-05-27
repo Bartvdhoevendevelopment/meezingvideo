@@ -102,6 +102,9 @@ function setTabsEnabled(songSelected) {
     const btn = document.querySelector(`.adm-tab[data-tab="${tab}"]`);
     if (btn) btn.disabled = !songSelected;
   });
+  if (name === 'timing' && currentSong?.youtube_id) initYT(currentSong.youtube_id);
+  if (name === 'lyrics') renderLyricsList();
+  if (name === 'timing') renderTimingList();
 }
 
 function updateSongContext() {
@@ -116,10 +119,29 @@ function updateSongContext() {
   }
 }
 
+// ── E-mail → naam mapping ────────────────────────────────────
+const USER_NAME_MAP = {
+  'bartvdhoeven@live.nl': 'Bart',
+  'keesvdhoeven@live.nl': 'Kees'
+};
+function displayName(email) {
+  if (!email) return '';
+  const lower = String(email).toLowerCase().trim();
+  if (USER_NAME_MAP[lower]) return USER_NAME_MAP[lower];
+  const prefix = lower.split('@')[0];
+  return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+}
+async function currentUserEmail() {
+  try {
+    const { data: { user } } = await db.auth.getUser();
+    return user?.email || null;
+  } catch { return null; }
+}
+
 // ── Songenlijst laden ────────────────────────────────────────
 async function loadSongs() {
   const { data, error } = await db.from('meezingvideo_songs')
-    .select('id,title,artist,youtube_id,description').order('title');
+    .select('id,title,artist,youtube_id,description,created_by,updated_by').order('title');
   if (error) { toast('Fout bij laden liederen: ' + error.message, false); return; }
   allSongs = data || [];
   renderSongGrid();
@@ -130,7 +152,9 @@ function getFilteredSongs() {
   if (!q) return allSongs;
   return allSongs.filter(s =>
     (s.title || '').toLowerCase().includes(q) ||
-    (s.artist || '').toLowerCase().includes(q)
+    (s.artist || '').toLowerCase().includes(q) ||
+    displayName(s.created_by).toLowerCase().includes(q) ||
+    displayName(s.updated_by).toLowerCase().includes(q)
   );
 }
 
@@ -149,10 +173,15 @@ function renderSongGrid() {
     slice.forEach(song => {
       const btn = document.createElement('button');
       btn.className = 'adm-song-card' + (currentSong?.id === song.id ? ' active' : '');
+      const creator = displayName(song.created_by);
+      const editor  = displayName(song.updated_by);
+      let byline = '';
+      if (creator && editor && creator !== editor) byline = `${creator} · bewerkt door ${editor}`;
+      else if (creator) byline = `door ${creator}`;
       btn.innerHTML = `
         <div class="adm-song-card-text">
           <div class="adm-song-card-title">${escHtml(song.title)}</div>
-          <div class="adm-song-card-artist">${escHtml(song.artist || '—')}</div>
+          <div class="adm-song-card-artist">${escHtml(song.artist || '—')}${byline ? ' <span class="adm-song-card-by">· ' + escHtml(byline) + '</span>' : ''}</div>
         </div>
         <svg class="adm-song-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
           <path d="M9 6l6 6-6 6"/>
@@ -235,7 +264,8 @@ async function saveSong() {
 
   if (!title) { toast('Vul een titel in', false); return; }
 
-  const payload = { title, artist, youtube_id, description };
+  const email = await currentUserEmail();
+  const payload = { title, artist, youtube_id, description, updated_by: email };
   let songId;
 
   if (currentSong?.id) {
@@ -243,6 +273,7 @@ async function saveSong() {
     if (error) { toast('Fout: ' + error.message, false); return; }
     songId = currentSong.id;
   } else {
+    payload.created_by = email;
     const { data, error } = await db.from('meezingvideo_songs').insert(payload).select().single();
     if (error) { toast('Fout: ' + error.message, false); return; }
     songId = data.id;
@@ -251,6 +282,7 @@ async function saveSong() {
   currentSong = { ...payload, id: songId };
   updateSongContext();
   setTabsEnabled(true);
+  document.getElementById('deleteSongBtn').hidden = false;
   toast('Lied opgeslagen ✓');
   await loadSongs();
 }
@@ -297,6 +329,90 @@ const SVG_UP   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const SVG_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
 const SVG_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 const SVG_DEL  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+const SVG_GRIP = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg>';
+
+function gripHtml(i) {
+  return `<span class="row-grip" draggable="true" data-i="${i}" title="Sleep om te verplaatsen">${SVG_GRIP}</span>`;
+}
+
+function numHtml(i) {
+  return `<span class="row-num">${i + 1}</span>`;
+}
+
+// ── Drag-and-drop voor regels ────────────────────────────────
+let dragSrcIdx = null;
+
+function handleDragStart(e) {
+  const handle = e.target.closest('.row-grip');
+  if (!handle) return;
+  dragSrcIdx = +handle.dataset.i;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', String(dragSrcIdx));
+  const row = handle.closest('.adm-lyrics-row, .adm-timing-row');
+  if (row) setTimeout(() => row.classList.add('dragging'), 0);
+}
+
+function clearDropIndicators() {
+  document.querySelectorAll('.drop-before, .drop-after').forEach(r => {
+    r.classList.remove('drop-before', 'drop-after');
+  });
+}
+
+function handleDragEnd(e) {
+  dragSrcIdx = null;
+  document.querySelectorAll('.dragging').forEach(r => r.classList.remove('dragging'));
+  clearDropIndicators();
+}
+
+function handleDragOver(e) {
+  if (dragSrcIdx === null) return;
+  // Altijd preventDefault binnen de lijst, ook als cursor in de tussenruimte (gap) zit
+  // — anders blokkeert de browser de drop wanneer je 'm vlak boven/onder een regel loslaat
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const row = e.target.closest('.adm-lyrics-row, .adm-timing-row');
+  if (!row) return; // geen rij onder cursor — laat eerdere indicator staan
+
+  // Bepaal of cursor in bovenste of onderste helft van de regel is
+  const rect = row.getBoundingClientRect();
+  const isUpperHalf = (e.clientY - rect.top) < rect.height / 2;
+
+  // Reset alle indicators, zet alleen op deze regel
+  clearDropIndicators();
+  row.classList.add(isUpperHalf ? 'drop-before' : 'drop-after');
+}
+
+function handleDrop(e) {
+  if (dragSrcIdx === null) return;
+  e.preventDefault();
+  const row = document.querySelector('.drop-before, .drop-after')
+           || e.target.closest('.adm-lyrics-row, .adm-timing-row');
+  if (!row) { handleDragEnd(); return; }
+  const targetIdx = +row.dataset.i;
+  if (Number.isNaN(targetIdx)) { handleDragEnd(); return; }
+
+  const position = row.classList.contains('drop-after') ? 'after' : 'before';
+  const src = dragSrcIdx;
+  dragSrcIdx = null;
+  document.querySelectorAll('.dragging').forEach(r => r.classList.remove('dragging'));
+  clearDropIndicators();
+  reorderLine(src, targetIdx, position);
+}
+
+function reorderLine(src, dst, position = 'before') {
+  if (src < 0 || src >= lines.length || dst < 0 || dst >= lines.length) return;
+  // Bereken insert-index (vóór of na het doel)
+  let insertAt = position === 'after' ? dst + 1 : dst;
+  if (src === insertAt || src + 1 === insertAt) return; // geen verandering
+  const item = lines.splice(src, 1)[0];
+  if (src < insertAt) insertAt--; // compenseer voor de splice hierboven
+  lines.splice(insertAt, 0, item);
+  // Houd de regel zichtbaar op de juiste pagina
+  if (activeTab === 'lyrics') lyricsPage = Math.floor(insertAt / LYRICS_PER_PAGE);
+  if (activeTab === 'timing') timingPage = Math.floor(insertAt / TIMING_PER_PAGE);
+  renderLyricsList();
+  renderTimingList();
+}
 
 function actionsHtml(i) {
   return `<div class="row-actions">
@@ -326,13 +442,13 @@ function renderLyricsList() {
   count.textContent = lines.length;
 
   if (!currentSong) {
-    list.innerHTML = `<div class="adm-lyrics-empty">Selecteer eerst een lied in tab "Liedbeheer".</div>`;
+    list.innerHTML = `<div class="adm-lyrics-empty"><p>Selecteer eerst een lied in tab <strong>Liedbeheer</strong>.</p></div>`;
     document.getElementById('lyricsPager').hidden = true;
     return;
   }
 
   if (lines.length === 0) {
-    list.innerHTML = `<div class="adm-lyrics-empty">Nog geen regels. Klik op <strong>+ Regel</strong> of zoek de tekst online (paneel rechts).</div>`;
+    list.innerHTML = `<div class="adm-lyrics-empty"><p>Nog geen regels. Klik op <strong>+&nbsp;Regel</strong>&nbsp;of zoek de tekst online (paneel rechts).</p></div>`;
     document.getElementById('lyricsPager').hidden = true;
     return;
   }
@@ -348,8 +464,10 @@ function renderLyricsList() {
     const i = start + idxInPage;
     const row = document.createElement('div');
     row.className = 'adm-lyrics-row';
+    row.dataset.i = i;
     row.innerHTML = `
-      <span class="row-num">${i + 1}</span>
+      ${gripHtml(i)}
+      ${numHtml(i)}
       <input class="row-text" type="text" value="${escHtml(line.text)}" placeholder="Tekstregel…" data-i="${i}" />
       ${actionsHtml(i)}
     `;
@@ -380,13 +498,13 @@ function renderTimingList() {
   if (countEl) countEl.textContent = lines.length;
 
   if (!currentSong) {
-    list.innerHTML = `<div class="adm-lyrics-empty">Selecteer eerst een lied.</div>`;
+    list.innerHTML = `<div class="adm-lyrics-empty"><p>Selecteer eerst een lied.</p></div>`;
     document.getElementById('timingPager').hidden = true;
     return;
   }
 
   if (lines.length === 0) {
-    list.innerHTML = `<div class="adm-lyrics-empty">Nog geen regels. Voeg ze toe in tab "Songtekst".</div>`;
+    list.innerHTML = `<div class="adm-lyrics-empty"><p>Nog geen regels. Voeg ze toe in tab <strong>Songtekst</strong>.</p></div>`;
     document.getElementById('timingPager').hidden = true;
     return;
   }
@@ -403,8 +521,10 @@ function renderTimingList() {
     const row = document.createElement('div');
     row.className = 'adm-timing-row';
     row.dataset.lineIndex = i;
+    row.dataset.i = i;
     row.innerHTML = `
-      <span class="row-num">${i + 1}</span>
+      ${gripHtml(i)}
+      ${numHtml(i)}
       <div class="row-time-controls">
         <button class="time-btn" data-i="${i}" data-d="-1"  title="-1s">−1</button>
         <button class="time-btn" data-i="${i}" data-d="-0.5" title="-½s">−½</button>
@@ -487,15 +607,22 @@ function highlightActiveTimingRow(t) {
 async function saveLyrics() {
   if (!currentSong?.id) { toast('Sla eerst het lied op', false); return; }
   await db.from('meezingvideo_lyrics').delete().eq('song_id', currentSong.id);
-  if (lines.length === 0) { toast('Songtekst opgeslagen (leeg)'); return; }
-  const rows = lines.map(l => ({
-    song_id: currentSong.id,
-    time: parseFloat(l.time),
-    text: l.text
-  }));
-  const { error } = await db.from('meezingvideo_lyrics').insert(rows);
-  if (error) { toast('Fout: ' + error.message, false); return; }
-  toast('Songtekst opgeslagen ✓');
+  if (lines.length > 0) {
+    const rows = lines.map(l => ({
+      song_id: currentSong.id,
+      time: parseFloat(l.time),
+      text: l.text
+    }));
+    const { error } = await db.from('meezingvideo_lyrics').insert(rows);
+    if (error) { toast('Fout: ' + error.message, false); return; }
+  }
+  // Markeer wie de songtekst heeft bewerkt op het lied
+  const email = await currentUserEmail();
+  if (email) {
+    await db.from('meezingvideo_songs').update({ updated_by: email }).eq('id', currentSong.id);
+    await loadSongs();
+  }
+  toast(lines.length === 0 ? 'Songtekst opgeslagen (leeg)' : 'Songtekst opgeslagen ✓');
 }
 
 // ── Songtekst opzoeken via /api/find-lyrics ──────────────────
@@ -689,7 +816,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderLyricsList();
     toast('Regels gesorteerd op tijd');
   });
-
   document.getElementById('searchForm')?.addEventListener('submit', e => {
     e.preventDefault();
     runAutoSearch();
@@ -697,6 +823,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('importLyricsBtn')?.addEventListener('click', importPastedLyrics);
 
   initShiftControls();
+
+  // Drag-and-drop voor regels (gedelegeerd op de lijst-containers)
+  ['lyricsList', 'timingRows'].forEach(id => {
+    const list = document.getElementById(id);
+    if (!list) return;
+    list.addEventListener('dragstart', handleDragStart);
+    list.addEventListener('dragend',   handleDragEnd);
+    list.addEventListener('dragover',  handleDragOver);
+    list.addEventListener('drop',      handleDrop);
+  });
 
   document.getElementById('songPager')?.addEventListener('click', e => {
     const btn = e.target.closest('[data-dir]'); if (!btn) return;

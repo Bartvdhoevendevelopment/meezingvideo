@@ -17,7 +17,7 @@
 
 <!-- ═══════════════ TOP BAR ═══════════════ -->
 <header class="adm-topbar">
-  <div class="adm-brand">
+  <a class="adm-brand" href="index.html" title="Naar homepagina">
     <div class="brand-mark" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 18V5l12-2v13" />
@@ -26,7 +26,7 @@
       </svg>
     </div>
     <span>Meezingvideo<span class="adm-brand-sub">/ Beheer</span></span>
-  </div>
+  </a>
 
   <div class="adm-songctx" id="songContext" hidden>
     <span class="adm-songctx-label">Geselecteerd:</span>
@@ -74,18 +74,27 @@
   <!-- Tabs -->
   <nav class="adm-tabs" role="tablist">
     <button class="adm-tab active" role="tab" data-tab="library">
+      <span class="adm-tab-num">1</span>
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/>
       </svg>
       <span>Liedbeheer</span>
     </button>
+    <span class="adm-tab-sep" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </span>
     <button class="adm-tab" role="tab" data-tab="lyrics" disabled title="Selecteer eerst een lied">
+      <span class="adm-tab-num">2</span>
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4 6h16M4 12h12M4 18h8"/>
       </svg>
       <span>Songtekst</span>
     </button>
+    <span class="adm-tab-sep" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </span>
     <button class="adm-tab" role="tab" data-tab="timing" disabled title="Selecteer eerst een lied">
+      <span class="adm-tab-num">3</span>
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 12a9 9 0 1 1-9-9"/><path d="m12 7 5 5-5 5"/>
       </svg>
