@@ -493,7 +493,7 @@ async function runAutoSearch() {
   const result = document.getElementById('lyricsResult');
   const btn    = document.getElementById('searchBtn');
   btn.disabled = true;
-  setSearchStatus('Claude zoekt de tekst op…', 'info');
+  setSearchStatus('Bezig met zoeken op Songteksten.net…', 'info');
 
   try {
     const { data: { session } } = await db.auth.getSession();
@@ -508,10 +508,11 @@ async function runAutoSearch() {
     catch { throw new Error('Server gaf geen geldige JSON terug (status ' + res.status + ')'); }
 
     if (!res.ok) throw new Error(json.error || 'Onbekende fout (status ' + res.status + ')');
-    if (!json.lyrics) throw new Error('AI gaf geen tekst terug');
+    if (!json.lyrics) throw new Error('Geen tekst gevonden');
 
     result.value = json.lyrics;
-    setSearchStatus(`Gevonden via Claude (${json.model || 'AI'}). Bekijk en pas eventueel aan vóór importeren.`, 'success');
+    const label = json.provider || (json.source ? (() => { try { return new URL(json.source).hostname; } catch { return 'bron'; } })() : 'bron');
+    setSearchStatus(`Gevonden via ${label}. Bekijk en pas eventueel aan vóór importeren.`, 'success');
   } catch (e) {
     setSearchStatus(e.message + ' — of zoek handmatig via de links hieronder.', 'error');
   } finally {
