@@ -1086,26 +1086,22 @@ textarea {
 @media (orientation: landscape) and (max-height: 600px) {
   .app { padding: 0 16px; }
 
-  /* Hero veel compacter — de titel en intro tekst nemen anders te veel ruimte */
-  .view-home { justify-content: flex-start; padding-top: 8px; }
-  .hero { margin-top: 0; }
-  .hero h1 {
-    font-size: 18px;
-    line-height: 1.15;
-    margin-bottom: 6px;
+  /* Hero volledig verbergen — er is geen ruimte voor en de "Meezingvideo"
+     titel staat al in de top-balk. Alleen zoekbalk + dropdown blijven over. */
+  .view-home {
+    justify-content: flex-start;
+    padding-top: 8px;
   }
-  .hero h1 br { display: none; }
-  .hero p {
-    font-size: 12px;
-    margin-bottom: 10px;
-    line-height: 1.35;
-  }
+  .hero h1,
+  .hero p,
   .hero .hint { display: none; }
 
-  /* Zoekbalk compacter, search-results dropdown krijgt meer ruimte */
+  /* Zoekbalk compact en direct onder de header */
   .search-box { padding: 3px 3px 3px 14px; border-radius: 12px; gap: 10px; }
   .search-box input { font-size: 14px; padding: 9px 0 9px 6px; }
-  .search-results { max-height: min(70dvh, 360px); }
+  /* Dropdown krijgt ademruimte naar onder (padding) en wordt door JS gemaxt
+     op de zichtbare hoogte minus toetsenbord (visualViewport). */
+  .search-results { padding-bottom: 8px; }
 
   /* ---------- Player view: side-by-side layout ---------- */
   .view-player .player-section {
@@ -1162,7 +1158,8 @@ textarea {
   .site-header { padding: 6px 10px; }
   .brand-mark { width: 30px; height: 30px; }
   .brand { font-size: 15px; gap: 8px; }
-  .np-bar { font-size: 12px; }
+  .brand-area { gap: 22px; }
+  .np-bar { font-size: 12px; gap: 12px; }
   /* Op landscape is er genoeg breedte voor de songtitel — niet afkappen */
   .np-bar-title { max-width: none; }
   .np-bar-artist { max-width: none; }

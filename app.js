@@ -202,19 +202,25 @@ function renderResults(items) {
   fitSearchResultsToViewport();
 }
 
-// Dynamisch max-height zodat dropdown altijd binnen viewport blijft
+// Dynamisch max-height zodat dropdown altijd binnen viewport blijft —
+// gebruik visualViewport zodat het toetsenbord op mobiel niet over de lijst valt
 function fitSearchResultsToViewport() {
   if (!searchResults) return;
   const rect = searchResults.getBoundingClientRect();
-  const viewH = window.innerHeight || document.documentElement.clientHeight;
-  const available = viewH - rect.top - 16; // 16px marge onderaan
+  const viewH = window.visualViewport?.height
+    || window.innerHeight
+    || document.documentElement.clientHeight;
+  const available = viewH - rect.top - 24; // 24px marge onderaan
   if (available > 120) {
     searchResults.style.maxHeight = Math.max(120, available) + 'px';
   }
 }
 
-// Herbereken bij venstergrootte-wijziging
+// Herbereken bij venstergrootte-wijziging en bij toetsenbord-open/dicht
 window.addEventListener('resize', () => {
+  if (searchResults?.classList.contains('open')) fitSearchResultsToViewport();
+});
+window.visualViewport?.addEventListener('resize', () => {
   if (searchResults?.classList.contains('open')) fitSearchResultsToViewport();
 });
 
