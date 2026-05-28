@@ -1087,6 +1087,52 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('importLyricsBtn')?.addEventListener('click', importPastedLyrics);
 
+  // Exporteer huidige regels naar het tekstvak rechts (alleen tekst, één per regel)
+  document.getElementById('exportToTextBtn')?.addEventListener('click', () => {
+    const ta = document.getElementById('lyricsResult');
+    if (!ta) return;
+    if (!currentSong) { toast('Selecteer eerst een lied', false); return; }
+    if (lines.length === 0) { toast('Nog geen regels om te exporteren', false); return; }
+    ta.value = lines.map(l => (l.text || '').trim()).join('\n');
+    toast(`${lines.length} regel${lines.length === 1 ? '' : 's'} naar tekstvak gezet`);
+  });
+
+  // Kruisje rechtsboven het tekstvak — leeg de inhoud in één klik
+  document.getElementById('clearLyricsResultBtn')?.addEventListener('click', () => {
+    const ta = document.getElementById('lyricsResult');
+    if (!ta) return;
+    ta.value = '';
+    ta.focus();
+  });
+
+  // Kruisje in het zoek-invoerveld — wis de zoekterm
+  document.getElementById('clearSearchQueryBtn')?.addEventListener('click', () => {
+    const q = document.getElementById('searchQuery');
+    if (!q) return;
+    q.value = '';
+    q.focus();
+  });
+
+  // Download de tekstvak-inhoud als .txt
+  document.getElementById('downloadTxtBtn')?.addEventListener('click', () => {
+    const ta = document.getElementById('lyricsResult');
+    if (!ta || !ta.value.trim()) { toast('Tekstvak is leeg', false); return; }
+    const safeTitle = (currentSong?.title || 'songtekst')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-+|-+$/g, '') || 'songtekst';
+    const blob = new Blob([ta.value], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeTitle}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    toast('Tekst gedownload');
+  });
+
   initShiftControls();
   initPreviewResize();
 

@@ -199,6 +199,10 @@
               <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
               Regel
             </button>
+            <button class="btn btn-ghost" id="exportToTextBtn" title="Zet de huidige regels in het tekstvak rechts">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              Naar tekstvak
+            </button>
             <button class="btn btn-primary" id="saveLyricsBtn">
               <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
               Opslaan
@@ -218,7 +222,14 @@
         <h3>Songtekst opzoeken</h3>
 
         <form class="adm-search-form" id="searchForm">
-          <input id="searchQuery" type="text" placeholder="Titel + artiest" autocomplete="off" />
+          <div class="adm-input-wrap">
+            <input id="searchQuery" type="text" placeholder="Titel + artiest" autocomplete="off" />
+            <button type="button" class="adm-input-clear" id="clearSearchQueryBtn" title="Wissen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
           <button class="btn btn-primary" id="searchBtn" type="submit" title="Zoek de tekst online">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             Zoek tekst
@@ -227,12 +238,25 @@
 
         <div class="adm-search-status" id="searchStatus" hidden></div>
 
-        <textarea id="lyricsResult" placeholder="Zoekresultaat verschijnt hier. Je mag deze tekst aanpassen voor je 'm importeert."></textarea>
+        <div class="adm-textarea-wrap">
+          <textarea id="lyricsResult" placeholder="Zoekresultaat verschijnt hier. Je mag deze tekst aanpassen voor je 'm importeert."></textarea>
+          <button type="button" class="adm-textarea-clear" id="clearLyricsResultBtn" title="Tekstvak leegmaken">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
 
-        <button class="btn btn-primary adm-import-btn" id="importLyricsBtn" type="button" title="Voeg elke regel toe aan de songtekst-editor links">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          Importeer naar songtekst
-        </button>
+        <div class="adm-search-actions">
+          <button class="btn btn-primary adm-import-btn" id="importLyricsBtn" type="button" title="Voeg elke regel toe aan de songtekst-editor links">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Importeer naar songtekst
+          </button>
+          <button class="btn btn-ghost" id="downloadTxtBtn" type="button" title="Sla de tekst op als .txt-bestand">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Download .txt
+          </button>
+        </div>
 
         <div class="adm-search-fallback">
           <span class="adm-helper">Niet gevonden? Zoek zelf:</span>

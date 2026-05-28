@@ -164,7 +164,7 @@ async function runSearch(q) {
 function renderResults(items) {
   searchResults.innerHTML = '';
   if (!items.length) {
-    searchResults.innerHTML = '<div class="search-empty">Geen liederen gevonden. Voeg er een toe via Beheer.</div>';
+    searchResults.innerHTML = '<div class="search-empty">Geen liederen gevonden.</div>';
     searchResults.classList.add('open');
     return;
   }
