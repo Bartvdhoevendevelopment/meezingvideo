@@ -1128,11 +1128,21 @@ textarea {
      titel staat al in de top-balk. Alleen zoekbalk + dropdown blijven over. */
   .view-home {
     justify-content: flex-start;
-    padding-top: 8px;
+    padding-top: 0;
+  }
+  .hero {
+    padding: 0;
+    margin: 0;
   }
   .hero h1,
   .hero p,
   .hero .hint { display: none; }
+  /* Compactere site-header geeft meer ruimte voor dropdown */
+  header.site-header {
+    padding: 4px 0;
+    min-height: 44px;
+  }
+  .search-wrap { margin-top: 4px; }
 
   /* Zoekbalk compact en direct onder de header */
   .search-box { padding: 3px 3px 3px 14px; border-radius: 12px; gap: 10px; }
