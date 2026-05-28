@@ -1123,10 +1123,10 @@ textarea {
   }
   .view-player .video-stage .video-frame {
     width: 100%;
-    max-width: min(100%, calc(92vh * 16 / 9));
-    max-width: min(100%, calc(92dvh * 16 / 9));
-    max-height: 92vh;
-    max-height: 92dvh;
+    max-width: min(100%, calc(78vh * 16 / 9));
+    max-width: min(100%, calc(78dvh * 16 / 9));
+    max-height: 78vh;
+    max-height: 78dvh;
   }
   .view-player .lyrics-stage {
     flex: 1 1 42%;
@@ -1149,14 +1149,21 @@ textarea {
     padding: 4px 0;
   }
   .view-player .lyrics-cinema .lyric-line.active { transform: scale(1.05); }
-  /* Layout-toggle (Onder/Naast) verbergen — de oriëntatie bepaalt de layout */
-  .view-player .layout-toggle,
-  .view-player .switch { display: none !important; }
+  /* Layout-toggle (Onder/Naast) verbergen — de oriëntatie bepaalt de layout.
+     De Auto-scroll switch blijft wel zichtbaar. */
+  .view-player .layout-toggle { display: none !important; }
+  .view-player .lyrics-stage-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
   /* Compactere top-balk */
   .site-header { padding: 6px 10px; }
   .brand-mark { width: 30px; height: 30px; }
   .brand { font-size: 15px; gap: 8px; }
   .np-bar { font-size: 12px; }
+  /* Op landscape is er genoeg breedte voor de songtitel — niet afkappen */
+  .np-bar-title { max-width: none; }
+  .np-bar-artist { max-width: none; }
 }
 
 /* Touch devices — grotere klikoppervlakken */
