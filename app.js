@@ -266,27 +266,6 @@ function renderLyrics() {
     // klik op tekst → spring naar dat moment
     textSpan.addEventListener('click', () => seekTo(line.start_seconds));
 
-    // timing-edit knop (altijd zichtbaar, ook voor niet-admins zodat iedereen
-    // kan helpen de timing te corrigeren — verwijder de !isAdmin check als je
-    // het alleen voor admins wil)
-    const editBtn = document.createElement('button');
-    editBtn.className = 'lyric-timing-btn';
-    editBtn.title = 'Timing aanpassen';
-    editBtn.setAttribute('aria-label', 'Timing aanpassen voor: ' + line.text);
-    editBtn.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-           stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="M12 6v6l4 2"/>
-      </svg>
-      <span>${formatSeconds(line.start_seconds)}</span>
-    `;
-    editBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      openTimingPopup(idx, editBtn);
-    });
-    el.appendChild(editBtn);
-
     lyricsListEl.appendChild(el);
   });
 }
@@ -490,6 +469,25 @@ function waitForYTApi() {
   document.head.appendChild(tag);
 })();
 
+// Status-balk reageert op YT player state
+const NP_STATES = {
+  '-1': { text: 'klaar om af te spelen', cls: 'paused' },   // UNSTARTED
+  '0':  { text: 'afgelopen',             cls: 'ended'  },   // ENDED
+  '1':  { text: 'wordt afgespeeld',      cls: ''       },   // PLAYING
+  '2':  { text: 'gepauzeerd',            cls: 'paused' },   // PAUSED
+  '3':  { text: 'aan het laden…',        cls: 'buffering' },// BUFFERING
+  '5':  { text: 'klaar om af te spelen', cls: 'paused' }    // CUED
+};
+function updateNpStatus(stateCode) {
+  const wrap = document.getElementById('npStatus');
+  const txt  = document.getElementById('npStatusText');
+  if (!wrap || !txt) return;
+  const info = NP_STATES[String(stateCode)] || { text: 'wordt afgespeeld', cls: '' };
+  txt.textContent = info.text;
+  wrap.classList.remove('paused', 'ended', 'buffering');
+  if (info.cls) wrap.classList.add(info.cls);
+}
+
 async function loadOrCueVideo(videoId) {
   if (!videoId) {
     console.warn('[meezingvideo] Geen YouTube-ID voor dit lied');
@@ -517,8 +515,9 @@ async function loadOrCueVideo(videoId) {
         videoId,
         playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
         events: {
-          onReady: () => startPolling(),
+          onReady: () => { startPolling(); updateNpStatus(5); },
           onStateChange: e => {
+            updateNpStatus(e.data);
             if (e.data === YT.PlayerState.PLAYING) startPolling();
           },
           onError: e => console.error('[meezingvideo] YT player error code', e?.data)

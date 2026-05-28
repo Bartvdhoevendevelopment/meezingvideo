@@ -19,7 +19,7 @@
 
     <header class="site-header">
       <div class="brand-area">
-        <div class="brand">
+        <a class="brand brand-link" href="index.html" id="brandLink" title="Naar de startpagina">
           <div class="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M9 18V5l12-2v13" />
@@ -28,7 +28,7 @@
             </svg>
           </div>
           <span>Meezingvideo</span>
-        </div>
+        </a>
 
         <!-- Now playing balk in navbar -->
         <div class="np-bar" id="npBar" style="display:none;">
@@ -37,9 +37,9 @@
             <span class="np-bar-title" id="songTitle">—</span>
             <span class="np-bar-artist" id="songArtist"></span>
           </div>
-          <span class="np-bar-status">
+          <span class="np-bar-status" id="npStatus">
             <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-            <span class="np-bar-status-text">wordt afgespeeld</span>
+            <span class="np-bar-status-text" id="npStatusText">wordt afgespeeld</span>
           </span>
         </div>
       </div>
