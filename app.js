@@ -130,6 +130,16 @@ searchInput.addEventListener('focus', () => {
   if (q) runSearch(q); else showAllSongs();
 });
 
+// Klik buiten de zoekbalk sluit de dropdown — maar alleen als 't veld leeg is.
+// Zo blijft het lijstje open als de gebruiker iets heeft ingevuld.
+document.addEventListener('click', e => {
+  if (!searchResults?.classList.contains('open')) return;
+  if (e.target.closest('.search-wrap')) return;
+  if (searchInput.value.trim() === '') {
+    searchResults.classList.remove('open');
+  }
+});
+
 async function showAllSongs() {
   try {
     const { data, error } = await sb
