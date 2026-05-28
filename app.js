@@ -220,15 +220,21 @@ async function selectSong(song) {
   activeIdx = -1;
   closeTimingPopup();
   // Verhoog view-counter (fire-and-forget, faalt stil als kolom of functie ontbreekt)
-  sb.rpc('increment_song_views', { song_id: song.id }).catch(() => {});
+  sb.rpc('increment_song_views', { song_id: song.id }).then(undefined, () => {});
   try {
     const { data, error } = await sb
       .from('meezingvideo_lyrics')
-      .select('id, start_seconds, end_seconds, text, line_order')
+      .select('id, time, text')
       .eq('song_id', song.id)
-      .order('start_seconds', { ascending: true });
+      .order('time', { ascending: true });
     if (error) throw error;
-    currentLyrics = data || [];
+    // Map naar de oude veldnamen die elders in app.js worden gebruikt
+    currentLyrics = (data || []).map(r => ({
+      id: r.id,
+      text: r.text,
+      start_seconds: r.time,
+      end_seconds: null
+    }));
     renderLyrics();
   } catch (err) {
     lyricsListEl.innerHTML = '<div class="lyrics-empty">Tekst laden mislukt.</div>';
@@ -439,7 +445,7 @@ async function saveTiming(idx, newTime) {
   try {
     const { error } = await sb
       .from('meezingvideo_lyrics')
-      .update({ start_seconds: newTime })
+      .update({ time: newTime })
       .eq('id', line.id);
 
     if (error) throw error;
@@ -485,22 +491,67 @@ function waitForYTApi() {
 })();
 
 async function loadOrCueVideo(videoId) {
-  await waitForYTApi();
-  if (!ytPlayer) {
-    ytPlayer = new YT.Player('ytPlayer', {
-      videoId,
-      playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
-      events: {
-        onReady: () => startPolling(),
-        onStateChange: e => {
-          if (e.data === YT.PlayerState.PLAYING) startPolling();
-        }
-      }
-    });
-  } else {
-    ytPlayer.loadVideoById(videoId);
-    startPolling();
+  if (!videoId) {
+    console.warn('[meezingvideo] Geen YouTube-ID voor dit lied');
+    showVideoError('Dit lied heeft geen YouTube-link.');
+    return;
   }
+  // Sla videoId direct op zodat fallback ook werkt
+  pendingVideoId = videoId;
+
+  // Wacht max 4 seconden op de YT IFrame API; daarna fallback naar directe iframe
+  const apiReady = await Promise.race([
+    waitForYTApi().then(() => true),
+    new Promise(r => setTimeout(() => r(false), 4000))
+  ]);
+
+  if (!apiReady) {
+    console.warn('[meezingvideo] YT IFrame API laadt niet, fallback naar directe iframe');
+    injectDirectIframe(videoId);
+    return;
+  }
+
+  try {
+    if (!ytPlayer) {
+      ytPlayer = new YT.Player('ytPlayer', {
+        videoId,
+        playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
+        events: {
+          onReady: () => startPolling(),
+          onStateChange: e => {
+            if (e.data === YT.PlayerState.PLAYING) startPolling();
+          },
+          onError: e => console.error('[meezingvideo] YT player error code', e?.data)
+        }
+      });
+    } else if (typeof ytPlayer.loadVideoById === 'function') {
+      ytPlayer.loadVideoById(videoId);
+      startPolling();
+    } else {
+      // ytPlayer-variabele bestaat maar is geen werkende speler — fallback
+      injectDirectIframe(videoId);
+    }
+  } catch (err) {
+    console.error('[meezingvideo] Fout bij aanmaken YT-player, fallback gebruikt:', err);
+    injectDirectIframe(videoId);
+  }
+}
+
+let pendingVideoId = null;
+function injectDirectIframe(videoId) {
+  const stage = document.querySelector('.video-frame');
+  if (!stage) return;
+  stage.innerHTML = `<iframe
+    src="https://www.youtube.com/embed/${encodeURIComponent(videoId)}?rel=0&modestbranding=1&playsinline=1"
+    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen></iframe>`;
+  // Polling/sync werkt niet meer met directe iframe, maar de video draait wel
+  ytPlayer = null;
+}
+function showVideoError(msg) {
+  const stage = document.querySelector('.video-frame');
+  if (!stage) return;
+  stage.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#fff;text-align:center;padding:20px;">${msg}</div>`;
 }
 
 function seekTo(seconds) {

@@ -1186,8 +1186,6 @@ body.admin-v2 {
   max-width: 960px;
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong, #3a3a48) transparent;
-  mask-image: linear-gradient(to bottom, transparent 0, #000 40px, #000 calc(100% - 40px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 40px, #000 calc(100% - 40px), transparent 100%);
 }
 .adm-preview-lyrics::-webkit-scrollbar { width: 8px; }
 .adm-preview-lyrics::-webkit-scrollbar-thumb {
