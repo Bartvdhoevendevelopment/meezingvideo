@@ -1084,7 +1084,15 @@ textarea {
 
 /* ---------- Mobiel in landscape: hele homepage compact zodat zoeklijst past ---------- */
 @media (orientation: landscape) and (max-height: 600px) {
-  .app { padding: 0 16px; }
+  /* Gebruik svh (small viewport height) zodat de browser-balk meegerekend
+     wordt en de site-header altijd binnen het zichtbare gebied valt. */
+  body:has(.app) {
+    height: 100svh;
+  }
+  .app {
+    padding: 0 16px;
+    height: 100svh;
+  }
 
   /* Hero volledig verbergen — er is geen ruimte voor en de "Meezingvideo"
      titel staat al in de top-balk. Alleen zoekbalk + dropdown blijven over. */
@@ -1137,7 +1145,7 @@ textarea {
   }
   .view-player .lyrics-stage-header { padding: 4px 8px; }
   .view-player .lyrics-cinema {
-    padding: 8px 12px 16px;
+    padding: 32px 12px 24px;
     min-height: 0;
     flex: 1;
   }
