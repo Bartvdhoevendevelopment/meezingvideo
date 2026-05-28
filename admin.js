@@ -2,6 +2,32 @@
    admin.js  —  Meezingvideo beheermodule (V2, tab-based)
    ============================================================ */
 
+// Mobiel-/tablet-block: beheer is alleen op de computer beschikbaar.
+// Combinatie van smalle viewport + touch-device geeft de meest betrouwbare detectie.
+(function blockOnMobile() {
+  const isNarrow = window.matchMedia('(max-width: 900px)').matches;
+  const isTouchOnly = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  if (!(isNarrow || isTouchOnly)) return;
+  document.addEventListener('DOMContentLoaded', () => {
+    const block = document.getElementById('mobileBlock');
+    const topbar = document.querySelector('.adm-topbar');
+    const login  = document.getElementById('loginView');
+    const view   = document.getElementById('adminView');
+    if (block) block.hidden = false;
+    if (topbar) topbar.hidden = true;
+    if (login)  login.hidden  = true;
+    if (view)   view.hidden   = true;
+    // Verkort hier ook: niet meer doorgaan met de rest van admin.js
+    document.body.classList.add('admin-blocked');
+  });
+  // Stop verdere initialisatie (Supabase-client etc) — niets meer doen op deze pagina
+  window.__MEEZING_BLOCKED__ = true;
+})();
+
+if (window.__MEEZING_BLOCKED__) {
+  // Niets meer doen — de mobiel-block-overlay is zichtbaar
+} else {
+
 const { createClient } = supabase;
 const { supabaseUrl, supabaseAnonKey } = window.MEEZINGVIDEO_CONFIG;
 const db = createClient(supabaseUrl, supabaseAnonKey);
@@ -25,7 +51,7 @@ let lastPreviewTimeSec = 0;
 let loadedVideoId = null;
 let loadedPreviewVideoId = null;
 
-const SONGS_PER_PAGE   = 8;
+const SONGS_PER_PAGE   = 9999; // alles op één scrollbare lijst — geen paginatie
 const LYRICS_PER_PAGE  = 9;
 const TIMING_PER_PAGE  = 8;
 
@@ -1018,13 +1044,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('loginForm')?.addEventListener('submit', async e => {
     e.preventDefault();
-    const email    = document.getElementById('loginEmail').value;
+    const email    = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
     const btn      = document.getElementById('loginSubmit');
+    if (!email || !password) {
+      toast('Vul je e-mail en wachtwoord in.', false);
+      return;
+    }
     btn.disabled = true; btn.textContent = 'Bezig…';
     const { error } = await db.auth.signInWithPassword({ email, password });
     btn.disabled = false; btn.textContent = 'Inloggen';
-    if (error) toast('Inloggen mislukt: ' + error.message, false);
+    if (error) {
+      // Vertaal de Engelse Supabase-meldingen naar het Nederlands
+      const msg = (error.message || '').toLowerCase();
+      let dutch = 'Inloggen niet gelukt. Probeer het nog eens.';
+      if (msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) {
+        dutch = 'E-mail of wachtwoord klopt niet.';
+      } else if (msg.includes('email not confirmed')) {
+        dutch = 'Je e-mail is nog niet bevestigd. Check je inbox.';
+      } else if (msg.includes('rate limit') || msg.includes('too many requests')) {
+        dutch = 'Te veel pogingen. Wacht even en probeer het later opnieuw.';
+      } else if (msg.includes('network')) {
+        dutch = 'Geen internetverbinding. Check je netwerk.';
+      }
+      toast(dutch, false);
+    }
   });
   document.getElementById('logoutBtn')?.addEventListener('click', () => db.auth.signOut());
 
@@ -1184,3 +1228,5 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTimingList();
   });
 });
+
+} // einde van: if (window.__MEEZING_BLOCKED__) else

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<title>CSS-effecten demo — Meezingvideo</title>
+<style>
+:root {
+  --bg: #0e0e14;
+  --surface: #16161f;
+  --border: #2a2a38;
+  --text: #f5f5f0;
+  --dim: #aaa;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background:
+    radial-gradient(1000px 600px at 20% -10%, rgba(217,119,87,0.08), transparent 60%),
+    radial-gradient(800px 500px at 110% 110%, rgba(120,180,255,0.06), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 40px 24px;
+}
+.wrap { max-width: 980px; margin: 0 auto; }
+h1 { font-size: 30px; text-align: center; margin: 0 0 8px; }
+.lead { text-align: center; color: var(--dim); margin-bottom: 40px; }
+section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 26px;
+  margin-bottom: 28px;
+}
+h2 { margin: 0 0 6px; font-size: 19px; }
+.desc { color: var(--dim); font-size: 13px; margin-bottom: 22px; }
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.demo {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 28px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 110px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.demo-label {
+  position: absolute;
+  bottom: 6px;
+  left: 0; right: 0;
+  font-size: 10px;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+/* ================= 1. SPARKLES / GLITTER ================= */
+.sparkle-1 {
+  position: relative;
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  padding: 8px 22px;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border-radius: 999px;
+  display: inline-block;
+}
+.sparkle-1::before, .sparkle-1::after {
+  content: '✦';
+  position: absolute;
+  color: #fff;
+  font-size: 14px;
+  animation: twinkle 1.6s ease-in-out infinite;
+}
+.sparkle-1::before { top: -4px; left: 8px; animation-delay: 0s; }
+.sparkle-1::after { bottom: -4px; right: 12px; animation-delay: 0.8s; }
+@keyframes twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+}
+
+.sparkle-2 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fde047;
+  padding: 10px 24px;
+  background: #1a1a2e;
+  border: 2px solid #fde047;
+  border-radius: 10px;
+  position: relative;
+  text-shadow: 0 0 8px #fbbf24;
+}
+.sparkle-2 .star {
+  position: absolute;
+  color: #fde047;
+  font-size: 14px;
+  animation: floatStar 2.4s linear infinite;
+  pointer-events: none;
+}
+.sparkle-2 .star:nth-child(1) { top: 4px; left: 6px; animation-delay: 0s; }
+.sparkle-2 .star:nth-child(2) { top: 50%; right: 4px; animation-delay: 0.6s; }
+.sparkle-2 .star:nth-child(3) { bottom: 4px; left: 30%; animation-delay: 1.2s; }
+.sparkle-2 .star:nth-child(4) { top: 20%; right: 30%; animation-delay: 1.8s; }
+@keyframes floatStar {
+  0% { opacity: 0; transform: translateY(0) scale(0.3); }
+  30% { opacity: 1; transform: translateY(-4px) scale(1); }
+  100% { opacity: 0; transform: translateY(-14px) scale(0.4); }
+}
+
+.sparkle-3 {
+  font-size: 20px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  padding: 8px 22px;
+  position: relative;
+}
+.sparkle-3::after {
+  content: '✨';
+  position: absolute;
+  font-size: 18px;
+  top: 0;
+  animation: slide 3s linear infinite;
+  -webkit-text-fill-color: initial;
+}
+@keyframes slide {
+  0% { left: -10%; opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+/* ================= 2. ANIMATED GRADIENT ================= */
+.gradient-1 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    #ff006e, #ff9e00, #ffea00, #00f5d4, #00bbf9, #9b5de5, #ff006e);
+  background-size: 300% 100%;
+  animation: rainbowShift 6s linear infinite;
+}
+@keyframes rainbowShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+
+.gradient-2 {
+  font-size: 20px;
+  font-weight: 900;
+  color: #000;
+  padding: 10px 24px;
+  border-radius: 10px;
+  background: linear-gradient(135deg,
+    #f5d142, #fff7c4, #d4a017, #fff7c4, #f5d142);
+  background-size: 200% 200%;
+  animation: goldShine 3.5s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(245, 209, 66, 0.4);
+}
+@keyframes goldShine {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.gradient-3 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 12px;
+  background: linear-gradient(120deg,
+    #d97757 0%, #e879f9 50%, #60a5fa 100%);
+  background-size: 200% 200%;
+  animation: smoothShift 5s ease-in-out infinite;
+}
+@keyframes smoothShift {
+  0%, 100% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+}
+
+.gradient-4 {
+  font-size: 20px;
+  font-weight: 900;
+  color: transparent;
+  padding: 8px 22px;
+  background: linear-gradient(90deg,
+    #d97757, #e879f9, #60a5fa, #34d399, #d97757);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: textRainbow 4s linear infinite;
+}
+@keyframes textRainbow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* ================= 3. NEON GLOW ================= */
+.neon-1 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  padding: 10px 24px;
+  text-shadow:
+    0 0 5px #fff,
+    0 0 10px #fff,
+    0 0 20px #ff006e,
+    0 0 30px #ff006e,
+    0 0 40px #ff006e;
+}
+
+.neon-2 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  padding: 10px 24px;
+  text-shadow:
+    0 0 5px #fff,
+    0 0 10px #00f5ff,
+    0 0 20px #00f5ff,
+    0 0 30px #00bbf9;
+  animation: neonPulse 1.5s ease-in-out infinite alternate;
+}
+@keyframes neonPulse {
+  from {
+    text-shadow:
+      0 0 5px #fff,
+      0 0 10px #00f5ff,
+      0 0 20px #00f5ff,
+      0 0 30px #00bbf9;
+  }
+  to {
+    text-shadow:
+      0 0 8px #fff,
+      0 0 18px #00f5ff,
+      0 0 32px #00f5ff,
+      0 0 48px #00bbf9;
+  }
+}
+
+.neon-3 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fde047;
+  padding: 10px 26px;
+  border: 2px solid #fde047;
+  border-radius: 10px;
+  text-shadow: 0 0 8px #fbbf24, 0 0 14px #fbbf24;
+  box-shadow:
+    inset 0 0 12px rgba(253, 224, 71, 0.4),
+    0 0 16px rgba(253, 224, 71, 0.5),
+    0 0 32px rgba(253, 224, 71, 0.25);
+  background: rgba(253, 224, 71, 0.05);
+}
+
+.neon-4 {
+  font-size: 22px;
+  font-weight: 900;
+  color: #ff6ec7;
+  padding: 10px 24px;
+  text-shadow:
+    -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff,
+    0 0 10px #ff6ec7,
+    0 0 20px #ff6ec7,
+    0 0 40px #ff1493;
+  animation: flicker 3s linear infinite;
+}
+@keyframes flicker {
+  0%, 18%, 20%, 22%, 25%, 53%, 57%, 100% {
+    opacity: 1;
+    text-shadow:
+      -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff,
+      0 0 10px #ff6ec7, 0 0 20px #ff6ec7, 0 0 40px #ff1493;
+  }
+  19%, 21%, 54%, 56% {
+    opacity: 0.6;
+    text-shadow: none;
+  }
+}
+
+/* ================= 4. COMBINATIES ================= */
+.combo-1 {
+  font-size: 24px;
+  font-weight: 900;
+  color: #fff;
+  padding: 12px 32px;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    #d97757, #e879f9, #60a5fa, #d97757);
+  background-size: 200% 100%;
+  animation: comboShift 6s linear infinite;
+  text-shadow: 0 0 8px rgba(255,255,255,0.5);
+  box-shadow:
+    0 0 20px rgba(217, 119, 87, 0.5),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+  position: relative;
+}
+.combo-1::before, .combo-1::after {
+  content: '✨';
+  position: absolute;
+  font-size: 16px;
+  animation: twinkle 1.6s ease-in-out infinite;
+}
+.combo-1::before { top: -6px; left: 8px; }
+.combo-1::after { bottom: -6px; right: 12px; animation-delay: 0.8s; }
+@keyframes comboShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.combo-2 {
+  font-size: 22px;
+  font-weight: 900;
+  color: #fde047;
+  padding: 10px 26px;
+  border: 2px solid #fde047;
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg,
+      rgba(245, 209, 66, 0.1),
+      rgba(255, 247, 196, 0.2),
+      rgba(212, 160, 23, 0.1),
+      rgba(255, 247, 196, 0.2),
+      rgba(245, 209, 66, 0.1));
+  background-size: 300% 300%;
+  animation: goldShine 4s ease-in-out infinite;
+  text-shadow: 0 0 10px #fbbf24, 0 0 20px #fbbf24;
+  box-shadow:
+    inset 0 0 18px rgba(253, 224, 71, 0.3),
+    0 0 24px rgba(253, 224, 71, 0.4);
+}
+
+.combo-3 {
+  font-size: 24px;
+  font-weight: 900;
+  padding: 10px 28px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #d97757, #c4634a);
+  color: #fff;
+  text-shadow: 0 0 8px rgba(255,255,255,0.7), 0 1px 2px rgba(0,0,0,0.4);
+  box-shadow:
+    0 0 20px rgba(217, 119, 87, 0.6),
+    0 4px 12px rgba(0,0,0,0.4);
+  position: relative;
+  overflow: hidden;
+}
+.combo-3::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shineSlide 3s linear infinite;
+}
+@keyframes shineSlide {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+footer {
+  text-align: center;
+  color: var(--dim);
+  font-size: 12px;
+  margin-top: 40px;
+  padding: 20px;
+}
+.code-hint {
+  font-family: 'Consolas', monospace;
+  font-size: 11px;
+  color: #888;
+  background: rgba(0,0,0,0.5);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 10px;
+  border-left: 3px solid var(--dim);
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>CSS-effecten demo</h1>
+  <p class="lead">Voorbeelden van animatie-effecten voor badges, titels, gebruikersnamen.</p>
+
+  <section>
+    <h2>1. Sparkles & glitter</h2>
+    <p class="desc">Knipperende sterretjes rond een element. Gemaakt met CSS <code>@keyframes</code> + <code>::before</code>/<code>::after</code>.</p>
+    <div class="row">
+      <div class="demo">
+        <span class="sparkle-1">ADMIN</span>
+        <span class="demo-label">Dubbele twinkel</span>
+      </div>
+      <div class="demo">
+        <span class="sparkle-2">VIP
+          <span class="star">★</span>
+          <span class="star">★</span>
+          <span class="star">★</span>
+          <span class="star">★</span>
+        </span>
+        <span class="demo-label">Opstijgende sterren</span>
+      </div>
+      <div class="demo">
+        <span class="sparkle-3">Bart</span>
+        <span class="demo-label">Glijdende sparkle</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Animated gradients</h2>
+    <p class="desc">Bewegende kleur-achtergrond. Werkt met <code>background-size</code> + <code>animation</code> op de <code>background-position</code>.</p>
+    <div class="row">
+      <div class="demo">
+        <span class="gradient-1">REGENBOOG</span>
+        <span class="demo-label">Schuivende regenboog</span>
+      </div>
+      <div class="demo">
+        <span class="gradient-2">ADMIN</span>
+        <span class="demo-label">Gouden glans</span>
+      </div>
+      <div class="demo">
+        <span class="gradient-3">PREMIUM</span>
+        <span class="demo-label">Zachte kleurverloop</span>
+      </div>
+      <div class="demo">
+        <span class="gradient-4">MEEZINGVIDEO</span>
+        <span class="demo-label">Regenboog-tekst</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. Neon glow / text-shadow</h2>
+    <p class="desc">Letters lichten op met een gekleurde halo. Werkt met meerdere <code>text-shadow</code> lagen.</p>
+    <div class="row">
+      <div class="demo">
+        <span class="neon-1">NEON</span>
+        <span class="demo-label">Roze neon</span>
+      </div>
+      <div class="demo">
+        <span class="neon-2">PULSE</span>
+        <span class="demo-label">Pulserend cyaan</span>
+      </div>
+      <div class="demo">
+        <span class="neon-3">GOLD</span>
+        <span class="demo-label">Gouden gloed</span>
+      </div>
+      <div class="demo">
+        <span class="neon-4">FLICKER</span>
+        <span class="demo-label">Flikkerend neon</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>4. Combinaties — meerdere effecten samen</h2>
+    <p class="desc">De spannendste resultaten zijn vaak combinaties: gradient + sparkle + glow tegelijk.</p>
+    <div class="row">
+      <div class="demo">
+        <span class="combo-1">VIP BART</span>
+        <span class="demo-label">Gradient + sparkles + glow</span>
+      </div>
+      <div class="demo">
+        <span class="combo-2">ADMIN</span>
+        <span class="demo-label">Goud gradient + neon</span>
+      </div>
+      <div class="demo">
+        <span class="combo-3">SUPER</span>
+        <span class="demo-label">Glanzende shimmer</span>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Bedacht je welke je mooi vindt? Geef het effectnummer door, dan voegen we 't toe aan de Meezingvideo-site.
+  </footer>
+</div>
+</body>
+</html>

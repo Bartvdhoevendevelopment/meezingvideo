@@ -50,6 +50,27 @@
   </nav>
 </header>
 
+<!-- ═══════════════ MOBIEL BLOCK ═══════════════ -->
+<main id="mobileBlock" class="adm-mobile-block" hidden>
+  <div class="adm-mobile-block-card">
+    <div class="adm-mobile-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="56" height="56">
+        <rect x="2" y="4" width="20" height="12" rx="2"/>
+        <line x1="8" y1="20" x2="16" y2="20"/>
+        <line x1="12" y1="16" x2="12" y2="20"/>
+      </svg>
+    </div>
+    <h1>Beheer alleen op computer</h1>
+    <p>De beheer-pagina is gebouwd voor een groter scherm en werkt niet goed op telefoon of tablet. Open <strong>meezingvideo.vercel.app/admin.html</strong> op je laptop of computer om in te loggen.</p>
+    <a class="btn btn-primary" href="index.html">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9"/><path d="M5 10v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10"/>
+      </svg>
+      Naar de homepage
+    </a>
+  </div>
+</main>
+
 <!-- ═══════════════ LOGIN VIEW ═══════════════ -->
 <main id="loginView" class="adm-login-shell" hidden>
   <div class="adm-login-card">
@@ -62,9 +83,6 @@
       <input id="loginPassword" type="password" required autocomplete="current-password" />
       <button type="submit" class="btn btn-primary" id="loginSubmit">Inloggen</button>
     </form>
-    <p class="adm-login-hint">
-      Nog geen account? Maak er één aan in je Supabase-dashboard → Authentication → Users.
-    </p>
   </div>
 </main>
 

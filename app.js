@@ -12,15 +12,6 @@ if (!window.supabase || !window.supabase.createClient) {
 }
 const { supabaseUrl, supabaseAnonKey } = window.MEEZINGVIDEO_CONFIG || {};
 const sb = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-console.log('[Meezingvideo] client klaar voor', supabaseUrl);
-
-(async () => {
-  try {
-    const { data, error } = await sb.from('meezingvideo_songs').select('id, title').limit(5);
-    if (error) console.error('[Meezingvideo] kan database niet bereiken:', error);
-    else console.log('[Meezingvideo] ' + data.length + ' song(s) in database:', data);
-  } catch (e) { console.error('[Meezingvideo] onverwachte fout:', e); }
-})();
 
 const homeView        = document.getElementById('homeView');
 const playerView      = document.getElementById('playerView');
@@ -130,6 +121,13 @@ searchInput.addEventListener('focus', () => {
   if (q) runSearch(q); else showAllSongs();
 });
 
+// Kruisje in het zoekveld — wist de zoekterm en toont weer alle liederen
+document.getElementById('searchClear')?.addEventListener('click', () => {
+  searchInput.value = '';
+  searchInput.focus();
+  showAllSongs();
+});
+
 // Klik buiten de zoekbalk sluit de dropdown — maar alleen als 't veld leeg is.
 // Zo blijft het lijstje open als de gebruiker iets heeft ingevuld.
 document.addEventListener('click', e => {
@@ -147,7 +145,7 @@ async function showAllSongs() {
       .select('id, title, artist, youtube_id, view_count')
       .order('view_count', { ascending: false, nullsFirst: false })
       .order('title', { ascending: true })
-      .limit(50);
+      .limit(5);
     if (error) throw error;
     renderResults(data || []);
   } catch (err) {
@@ -210,7 +208,7 @@ function fitSearchResultsToViewport() {
   const viewH = window.visualViewport?.height
     || window.innerHeight
     || document.documentElement.clientHeight;
-  const available = viewH - rect.top - 24; // 24px marge onderaan
+  const available = viewH - rect.top - 32; // 32px marge onderaan
   if (available > 120) {
     searchResults.style.maxHeight = Math.max(120, available) + 'px';
   }

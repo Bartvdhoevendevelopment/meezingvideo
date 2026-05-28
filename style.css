@@ -376,6 +376,36 @@ a.brand-link:hover .brand-mark {
 }
 .search-box input::placeholder { color: var(--text-dim); }
 
+/* Kruisje in het zoekveld om de tekst in 1 klik te wissen */
+.search-clear {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-right: 4px;
+  opacity: 0.7;
+  transition: opacity 0.15s, background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.search-box input:placeholder-shown ~ .search-clear {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+.search-clear:hover {
+  opacity: 1;
+  background: var(--accent);
+  color: #000;
+  border-color: transparent;
+}
+
 .search-results {
   position: absolute;
   top: calc(100% + 12px);
@@ -1109,7 +1139,12 @@ textarea {
   .search-box input { font-size: 14px; padding: 9px 0 9px 6px; }
   /* Dropdown krijgt ademruimte naar onder (padding) en wordt door JS gemaxt
      op de zichtbare hoogte minus toetsenbord (visualViewport). */
-  .search-results { padding-bottom: 8px; }
+  .search-results { padding-bottom: 14px; }
+  /* Compactere resultaat-rijen zodat 5 items netjes passen in landscape */
+  .search-result { padding: 6px 12px; gap: 10px; }
+  .search-result img { width: 44px; height: 32px; }
+  .search-result .title { font-size: 13px; }
+  .search-result .artist { font-size: 11px; }
 
   /* ---------- Player view: side-by-side layout ---------- */
   .view-player .player-section {

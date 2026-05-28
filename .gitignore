@@ -19,3 +19,6 @@ build/
 *.log
 
 # Cowork / interne bestanden — geen
+
+# Lokale eindcontrole-tool (alleen voor Bart's eigen check)
+eindcontrole.html
