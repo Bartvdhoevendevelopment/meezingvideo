@@ -1042,7 +1042,6 @@ textarea {
 
 /* Extra klein (<= 420px) */
 @media (max-width: 420px) {
-  .brand span { display: none; } /* alleen logo */
   .np-bar-title { max-width: 130px; }
   .np-bar-artist { max-width: 130px; }
   .hero h1 { font-size: 22px; }
@@ -1083,8 +1082,32 @@ textarea {
   .section-title { flex-wrap: wrap; gap: 10px; }
 }
 
-/* ---------- Mobiel in landscape: forceer video links + songtekst rechts ---------- */
+/* ---------- Mobiel in landscape: hele homepage compact zodat zoeklijst past ---------- */
 @media (orientation: landscape) and (max-height: 600px) {
+  .app { padding: 0 16px; }
+
+  /* Hero veel compacter — de titel en intro tekst nemen anders te veel ruimte */
+  .view-home { justify-content: flex-start; padding-top: 8px; }
+  .hero { margin-top: 0; }
+  .hero h1 {
+    font-size: 18px;
+    line-height: 1.15;
+    margin-bottom: 6px;
+  }
+  .hero h1 br { display: none; }
+  .hero p {
+    font-size: 12px;
+    margin-bottom: 10px;
+    line-height: 1.35;
+  }
+  .hero .hint { display: none; }
+
+  /* Zoekbalk compacter, search-results dropdown krijgt meer ruimte */
+  .search-box { padding: 3px 3px 3px 14px; border-radius: 12px; gap: 10px; }
+  .search-box input { font-size: 14px; padding: 9px 0 9px 6px; }
+  .search-results { max-height: min(70dvh, 360px); }
+
+  /* ---------- Player view: side-by-side layout ---------- */
   .view-player .player-section {
     flex-direction: row;
     align-items: stretch;
