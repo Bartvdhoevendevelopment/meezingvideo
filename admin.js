@@ -1082,6 +1082,7 @@ document.addEventListener('DOMContentLoaded', () => {
     toast('Regels gesorteerd op tijd');
   });
   document.getElementById('searchForm')?.addEventListener('submit', e => {
+    e.preventDefault();
     runAutoSearch();
   });
   document.getElementById('importLyricsBtn')?.addEventListener('click', importPastedLyrics);
