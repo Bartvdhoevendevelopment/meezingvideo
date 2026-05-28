@@ -1147,11 +1147,14 @@ textarea {
   /* Zoekbalk compact en direct onder de header */
   .search-box { padding: 3px 3px 3px 14px; border-radius: 12px; gap: 10px; }
   .search-box input { font-size: 14px; padding: 9px 0 9px 6px; }
-  /* Dropdown krijgt ademruimte naar onder (padding) en wordt door JS gemaxt
-     op de zichtbare hoogte minus toetsenbord (visualViewport). */
-  .search-results { padding-bottom: 14px; }
-  /* Compactere resultaat-rijen zodat 5 items netjes passen in landscape */
+  /* Dropdown — geen padding aan onderkant; de ademruimte komt uit
+     de marge tussen dropdown en viewport (via fitSearchResultsToViewport). */
+  .search-results { padding-bottom: 0; }
+  /* Compactere resultaat-rijen zodat 5 items netjes passen in landscape.
+     Laatste rij houdt dezelfde hoogte (transparante border) maar geen
+     zichtbare dubbele lijn met de container-rand. */
   .search-result { padding: 6px 12px; gap: 10px; }
+  .search-result:last-child { border-bottom-color: transparent; }
   .search-result img { width: 44px; height: 32px; }
   .search-result .title { font-size: 13px; }
   .search-result .artist { font-size: 11px; }

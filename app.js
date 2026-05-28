@@ -208,7 +208,7 @@ function fitSearchResultsToViewport() {
   const viewH = window.visualViewport?.height
     || window.innerHeight
     || document.documentElement.clientHeight;
-  const available = viewH - rect.top - 32; // 32px marge onderaan
+  const available = viewH - rect.top - 40; // 40px marge onderaan
   if (available > 120) {
     searchResults.style.maxHeight = Math.max(120, available) + 'px';
   }
