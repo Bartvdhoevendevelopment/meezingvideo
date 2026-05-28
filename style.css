@@ -245,6 +245,16 @@ a.brand-link:hover {
   text-decoration: none;
   opacity: 0.92;
 }
+/* Versie-label naast "Meezingvideo" (klein, dim, omhoog) */
+.brand-version {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-left: 3px;
+  letter-spacing: 0.02em;
+  vertical-align: super;
+  text-transform: lowercase;
+}
 a.brand:hover .brand-mark,
 a.brand-link:hover .brand-mark {
   transform: scale(1.06);
