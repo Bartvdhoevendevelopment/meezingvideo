@@ -1,0 +1,6 @@
+# Meezingvideo — toestaan voor alle bots, behalve de admin
+User-agent: *
+Allow: /
+Disallow: /admin.html
+
+Sitemap: https://meezingvideo.vercel.app/sitemap.xml
