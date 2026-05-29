@@ -2,6 +2,15 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
+<!-- Tijdelijke proef-gate: voorkomt random bezoekers tijdens de proefperiode. -->
+<script>
+  (function () {
+    var v = localStorage.getItem('mzv_unlock_v1');
+    if (v && parseInt(v, 10) > Date.now()) return;
+    location.replace('gate.html');
+  })();
+</script>
+<meta name="robots" content="noindex, nofollow" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Pagina niet gevonden — Meezingvideo</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0a0f" />
+<meta name="robots" content="noindex, nofollow" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<title>Beveiligd — Meezingvideo</title>
+<style>
+:root {
+  --bg-deep: #0e0e14;
+  --surface: #16161f;
+  --border: #2a2a38;
+  --text: #f5f5f0;
+  --text-dim: #aaa;
+  --accent: #d97757;
+  --accent-glow: rgba(217, 119, 87, 0.45);
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background:
+    radial-gradient(1100px 600px at 20% -10%, rgba(217, 119, 87, 0.10), transparent 60%),
+    radial-gradient(900px 500px at 110% 10%, rgba(183, 142, 224, 0.08), transparent 60%),
+    var(--bg-deep);
+  color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 36px 28px 30px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+.brand-mark {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  margin: 0 auto 22px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--accent), #c4634a 70%);
+  box-shadow: 0 10px 32px var(--accent-glow);
+  color: #fff;
+}
+.brand-mark svg { width: 28px; height: 28px; }
+h1 {
+  font-size: 22px;
+  margin: 0 0 6px;
+  font-weight: 700;
+}
+p.lead {
+  color: var(--text-dim);
+  font-size: 14px;
+  margin: 0 0 22px;
+  line-height: 1.5;
+}
+.field {
+  text-align: left;
+  margin-bottom: 14px;
+}
+label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+input[type="password"] {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+input[type="password"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.18);
+}
+button {
+  width: 100%;
+  padding: 13px 18px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 6px 18px var(--accent-glow);
+}
+button:hover { transform: translateY(-1px); box-shadow: 0 10px 26px var(--accent-glow); }
+.err {
+  margin-top: 12px;
+  color: #ff7676;
+  font-size: 13px;
+  min-height: 18px;
+}
+.footer {
+  margin-top: 22px;
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18V5l12-2v13" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="18" cy="16" r="3" />
+      </svg>
+    </div>
+    <h1>Meezingvideo</h1>
+    <p class="lead">Deze website draait nog proef. Voer het wachtwoord in om verder te gaan.</p>
+    <form id="gateForm">
+      <div class="field">
+        <label for="pw">Wachtwoord</label>
+        <input id="pw" type="password" autocomplete="current-password" autofocus required />
+      </div>
+      <button type="submit">Verder</button>
+      <div class="err" id="err"></div>
+    </form>
+    <div class="footer">
+      Toegang voor beheerders en testers.<br>
+      Vraag Bart als je het wachtwoord niet hebt.
+    </div>
+  </div>
+
+<script>
+(function () {
+  // Eenvoudige obscurity-gate. Voorkomt random bezoekers en zoekmachines —
+  // niet bedoeld als zware beveiliging. Wordt verwijderd zodra de site
+  // officieel live mag (na licenties van Sela / Small Stone Media).
+  var PASSWORD = 'proefdraaien';
+  var STORAGE_KEY = 'mzv_unlock_v1';
+  var EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 dagen
+
+  var form = document.getElementById('gateForm');
+  var pw = document.getElementById('pw');
+  var err = document.getElementById('err');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (pw.value === PASSWORD) {
+      var until = Date.now() + EXPIRY_MS;
+      try { localStorage.setItem(STORAGE_KEY, String(until)); } catch (_) {}
+      // Ga naar de pagina waar de gebruiker oorspronkelijk heen wilde,
+      // of anders de homepage.
+      var params = new URLSearchParams(location.search);
+      var from = params.get('from');
+      var target = 'index.html';
+      if (from && /^[a-zA-Z0-9_\-./]+$/.test(from)) target = from;
+      location.replace(target);
+    } else {
+      err.textContent = 'Het wachtwoord klopt niet.';
+      pw.value = '';
+      pw.focus();
+    }
+  });
+})();
+</script>
+</body>
+</html>

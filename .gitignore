@@ -22,3 +22,6 @@ build/
 
 # Lokale eindcontrole-tool (alleen voor Bart's eigen check)
 eindcontrole.html
+
+# Conceptmails (privé, niet meedeployen)
+mail-*-concept.md

@@ -1,6 +1,4 @@
-# Meezingvideo — toestaan voor alle bots, behalve de admin
+# Meezingvideo — site is in proefperiode, zoekmachines indexeren niets.
+# Wordt teruggezet zodra de site officieel live gaat.
 User-agent: *
-Allow: /
-Disallow: /admin.html
-
-Sitemap: https://meezingvideo.vercel.app/sitemap.xml
+Disallow: /

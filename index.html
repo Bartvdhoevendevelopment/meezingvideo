@@ -2,6 +2,16 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
+  <!-- Tijdelijke proef-gate: voorkomt random bezoekers tijdens de proefperiode.
+       Wordt verwijderd zodra Sela / Small Stone Media toestemming hebben gegeven. -->
+  <script>
+    (function () {
+      var v = localStorage.getItem('mzv_unlock_v1');
+      if (v && parseInt(v, 10) > Date.now()) return;
+      location.replace('gate.html?from=' + encodeURIComponent(location.pathname + location.search));
+    })();
+  </script>
+  <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0a0a0f" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3" />
